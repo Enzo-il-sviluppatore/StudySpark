@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudySpark</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#68708a;--brand:#5b4bdb;--ok:#18a058;--bad:#d03050;--line:#e3e6f0}
+@media(prefers-color-scheme:dark){:root{--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+h1{font-size:1.3rem;margin:0;color:var(--brand)}main{max-width:900px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 16px;background:var(--brand);color:#fff}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.5;cursor:wait}
+input[type=text],textarea{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+textarea{min-height:140px}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tabs button.on{background:var(--brand);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}.mute{color:var(--mute);font-size:.9rem}
+.fc{min-height:200px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:1.2rem;cursor:pointer;padding:24px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}.opt.right{background:var(--ok);color:#fff}.opt.wrong{background:var(--bad);color:#fff}
+.msg{padding:10px 14px;border-radius:12px;margin:8px 0;max-width:85%;white-space:pre-wrap}.me{background:var(--brand);color:#fff;margin-left:auto}.ai{background:var(--bg);border:1px solid var(--line)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;display:none;z-index:9}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:6px}@keyframes s{to{transform:rotate(360deg)}}
+.dia{overflow-x:auto;text-align:center}dt{font-weight:600}dd{margin:0 0 8px}
+</style>
+</head>
+<body>
+<header><h1>⚡ StudySpark</h1><div id="auth"></div></header>
+<main id="app"></main>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script type="module">
+/* ===== CONFIG: fill these in (see README) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBo6iQCHvpVsfky37Ddry0dwM87zIydSRY",
+  authDomain: "studyspark-92528.firebaseapp.com",
+  projectId: "studyspark-92528",
+  storageBucket: "studyspark-92528.firebasestorage.app",
+  messagingSenderId: "498758919495",
+  appId: "1:498758919495:web:1df7d5f873793de7df9862"
+};
+const AI_URL = "https://studyspark-ai.vincenzobal12.workers.dev"; // Cloudflare Worker (holds the AI key)
+/* ============================================== */
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getFirestore,collection,doc,addDoc,setDoc,getDocs,deleteDoc,query,orderBy} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs";
+
+const $=s=>document.querySelector(s), app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+mermaid.initialize({startOnLoad:false,securityLevel:"strict",theme:matchMedia("(prefers-color-scheme:dark)").matches?"dark":"default"});
+
+const fbApp=initializeApp(firebaseConfig), auth=getAuth(fbApp), db=getFirestore(fbApp);
+let user=null, sets=[], cur=null, tab="notes";
+const setsCol=()=>collection(db,"users",user.uid,"sets");
+
+$("#auth").onclick=async e=>{
+  if(e.target.id==="in"){try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(err){toast("Sign-in failed: "+err.code)}}
+  if(e.target.id==="out")signOut(auth);
+};
+onAuthStateChanged(auth,async u=>{
+  user=u;cur=null;
+  $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
+  if(!u){app.innerHTML=`<div class="card"><h2>Turn your notes into study tools</h2><p>Upload text or PDF notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p class="mute">Sign in to begin. Your data is private to your account.</p></div>`;return}
+  await loadSets();home();
+});
+
+async function loadSets(){
+  try{const s=await getDocs(query(setsCol(),orderBy("created","desc")));sets=s.docs.map(d=>({id:d.id,...d.data()}))}
+  catch(e){toast("Could not load your library: "+e.code)}
+}
+
+/* ---------- Library / upload ---------- */
+function home(){
+  app.innerHTML=`<div class="card"><h2>New study set</h2>
+  <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
+  <p><input type="file" id="file" accept=".txt,.md,.pdf,text/plain,application/pdf"> <span class="mute">.txt, .md or .pdf, up to 5 MB</span></p>
+  <textarea id="txt" placeholder="…or paste your notes here"></textarea>
+  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
+  <h2>Your library</h2><div class="grid">${sets.map(s=>`<div class="card"><b>${esc(s.title)}</b>
+  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Cards mastered: ${(s.cards||[]).filter(c=>c.box>=3).length}${s.lastScore!=null?`<br>Last quiz: ${s.lastScore}/${s.quiz.length}`:""}</div>
+  <p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
+  $("#file").onchange=readFile;
+  $("#go").onclick=generate;
+  app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(s=>s.id===b.dataset.open);tab="notes";study()});
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
+    try{await deleteDoc(doc(setsCol(),b.dataset.del));sets=sets.filter(s=>s.id!==b.dataset.del);home()}catch(e){toast("Delete failed: "+e.code)}});
+}
+async function readFile(){
+  const f=$("#file").files[0];if(!f)return;
+  const ok=/\.(txt|md|pdf)$/i.test(f.name);
+  if(!ok||f.size>5*1024*1024){toast(!ok?"Only .txt, .md and .pdf files are allowed.":"File is over 5 MB.");$("#file").value="";return}
+  $("#st").textContent="Reading file…";
+  try{
+    let t="";
+    if(/\.pdf$/i.test(f.name)){
+      const buf=await f.arrayBuffer();
+      if(new TextDecoder().decode(buf.slice(0,5))!=="%PDF-")throw new Error("Not a valid PDF.");
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      for(let i=1;i<=Math.min(pdf.numPages,60);i++){t+=(await(await pdf.getPage(i)).getTextContent()).items.map(x=>x.str).join(" ")+"\n"}
+      if(t.trim().length<50)throw new Error("No readable text found (scanned PDFs need OCR, which isn't supported).");
+    }else t=await f.text();
+    $("#txt").value=t.slice(0,200000);if(!$("#title").value)$("#title").value=f.name.replace(/\.\w+$/,"");
+    $("#st").textContent=`Loaded ${t.length.toLocaleString()} characters.`;
+  }catch(e){toast(e.message||"Could not read file");$("#st").textContent=""}
+}
+async function ai(path,body){
+  const r=await fetch(AI_URL+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+await user.getIdToken()},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"AI service error ("+r.status+")");return j;
+}
+async function generate(){
+  const text=$("#txt").value.trim(),title=$("#title").value.trim()||"Untitled";
+  if(text.length<200)return toast("Please add at least a few paragraphs of notes (200+ characters).");
+  const b=$("#go");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating… (10–30s)';
+  try{
+    const g=await ai("/generate",{text:text.slice(0,14000)});
+    const data={title,created:Date.now(),text:text.slice(0,30000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null};
+    const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();
+  }catch(e){toast(e.message);b.disabled=false;b.textContent="Generate study materials"}
+}
+
+/* ---------- Study view ---------- */
+function study(){
+  app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2>
+  <div class="tabs">${["notes","cards","quiz","tutor"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"Study notes",cards:"Flashcards",quiz:"Quiz",tutor:"AI tutor"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
+  $("#back").onclick=()=>home();
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
+  ({notes,cards,quiz,tutor})[tab]($("#pane"));
+}
+const save=p=>setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code));
+
+async function notes(p){
+  const n=cur.notes||{};
+  p.innerHTML=`<div class="card"><h3>Summary</h3><p>${esc(n.summary)}</p></div>
+  <div id="dia" class="card dia" hidden></div>
+  <div class="card"><h3>Key concepts</h3><dl>${(n.concepts||[]).map(c=>`<dt>${esc(c.term)}</dt><dd>${esc(c.explanation)}</dd>`).join("")}</dl></div>
+  <div class="card"><h3>Vocabulary</h3><dl>${(n.vocab||[]).map(c=>`<dt>${esc(c.word)}</dt><dd>${esc(c.definition)}</dd>`).join("")}</dl></div>
+  <div class="card"><h3>Examples</h3><ul>${(n.examples||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  if(n.diagram){try{const {svg}=await mermaid.render("d"+Date.now(),n.diagram);const d=$("#dia");d.innerHTML="<h3>Concept map</h3>"+svg;d.hidden=false}catch(e){/* skip bad diagram */}}
+}
+
+function cards(p){
+  const all=cur.cards||[];if(!all.length)return p.innerHTML="<p>No cards.</p>";
+  let i=0,flip=false;
+  const draw=()=>{const c=all[i];p.innerHTML=`<p class="mute">Card ${i+1} of ${all.length} · mastered ${all.filter(x=>x.box>=3).length}</p>
+  <div class="card fc" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap card to flip</p>
+  <button class="alt" id="no">Still learning</button> <button id="yes">Got it</button>`;
+  $("#fc").onclick=()=>{flip=!flip;draw()};
+  const nx=d=>{c.box=Math.max(0,Math.min(4,(c.box||0)+d));i=(i+1)%all.length;flip=false;save({cards:all});draw()};
+  $("#yes").onclick=()=>nx(1);$("#no").onclick=()=>nx(-1)};draw();
+}
+
+function quiz(p){
+  const qs=cur.quiz||[];if(!qs.length)return p.innerHTML="<p>No questions.</p>";
+  let i=0,score=0;
+  const draw=()=>{
+    if(i>=qs.length){save({lastScore:score});cur.lastScore=score;
+      return p.innerHTML=`<div class="card"><h3>Score: ${score}/${qs.length}</h3><button id="re">Retake</button></div>`,$("#re").onclick=()=>{i=0;score=0;draw()}}
+    const q=qs[i];p.innerHTML=`<p class="mute">Question ${i+1} of ${qs.length}</p><div class="card"><b>${esc(q.q)}</b>
+    ${q.options.map((o,k)=>`<button class="alt opt" data-k="${k}">${esc(o)}</button>`).join("")}<p id="ex" class="mute"></p></div>`;
+    p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+      const k=+b.dataset.k;if(k===q.answer)score++;
+      p.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===q.answer)x.classList.add("right");else if(j===k)x.classList.add("wrong")});
+      $("#ex").innerHTML=esc(q.explain)+'<br><br><button id="nx">Next</button>';$("#nx").onclick=()=>{i++;draw()}});
+  };draw();
+}
+
+const chats={};
+function tutor(p){
+  const h=chats[cur.id]??=[];
+  p.innerHTML=`<div class="card"><p class="mute">I explain ideas, give hints and ask guiding questions. For homework or assignments I won't hand over final answers.</p>
+  <div id="log">${h.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${esc(m.content)}</div>`).join("")}</div>
+  <textarea id="q" style="min-height:60px" maxlength="1000" placeholder="Ask about your notes…"></textarea><p><button id="send">Send</button></p></div>`;
+  $("#send").onclick=async()=>{
+    const q=$("#q").value.trim();if(!q)return;h.push({role:"user",content:q});const b=$("#send");b.disabled=true;b.innerHTML='<span class="spin"></span>Thinking…';
+    try{const r=await ai("/chat",{messages:h.slice(-10),context:(cur.text||"").slice(0,6000)});h.push({role:"assistant",content:r.reply})}
+    catch(e){h.pop();toast(e.message)}
+    tutor(p);
+  };
+}
+</script>
+</body>
+</html>
