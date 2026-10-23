@@ -140,6 +140,8 @@ function openSettings(){
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
   <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
   ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
+  <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information.</p>
+  ${user?'<p><button class="alt" id="dl">⬇️ Download my data</button> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
   <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
   draw();
   m.onclick=e=>{
@@ -148,6 +150,8 @@ function openSettings(){
     if(b.dataset.k){S[b.dataset.k]=b.dataset.v;persist();draw()}
     else if(b.dataset.pal){S.palette=b.dataset.pal;persist();draw()}
     else if(b.id==="tst")sfx.correct();
+    else if(b.id==="dl")exportData();
+    else if(b.id==="del")wipeData(m);
     else if(b.id==="rst"){S={...DEF,types:{...DEF.types}};persist();draw()}
   };
   m.onchange=e=>{const t=e.target;
@@ -176,6 +180,20 @@ applySettings();
 $("#snd").onclick=()=>{S.sound=!S.sound;persist()};
 $("#gear").onclick=openSettings;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const m=$("#sm");m&&m.remove()}});
+function exportData(){
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),settings:S,sets},null,2)],{type:"application/json"}));
+  a.download="studyspark-data.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+async function wipeData(m){
+  if(!confirm("Delete ALL your study sets and saved settings? This cannot be undone."))return;
+  if(prompt("Type DELETE to confirm")!=="DELETE")return toast("Cancelled. Nothing was deleted.");
+  try{
+    const snap=await getDocs(setsCol());await Promise.all(snap.docs.map(d=>deleteDoc(d.ref)));
+    await deleteDoc(doc(db,"users",user.uid,"prefs","settings")).catch(()=>{});
+    sets=[];cur=null;try{localStorage.removeItem("ss_settings")}catch(e){}
+    S={...DEF,types:{...DEF.types}};applySettings();m.remove();home();toast("All your data was deleted.");
+  }catch(e){toast("Couldn’t delete everything: "+e.code)}
+}
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -207,7 +225,7 @@ function home(){window.speechSynthesis&&speechSynthesis.cancel();
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
   <h2>Your library</h2><div class="grid">${sets.map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
-  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Cards mastered: ${(s.cards||[]).filter(c=>c.box>=3).length}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
+  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
   $("#go").onclick=generate;
@@ -343,6 +361,7 @@ function conceptMap(el,d){
 }
 
 const cardsFromNotes=n=>[...(n?.vocab||[]).filter(v=>v&&v.word&&v.definition).map(v=>({front:String(v.word),back:String(v.definition),box:0})),...(n?.concepts||[]).filter(c=>c&&c.term&&c.explanation).map(c=>({front:"What is "+c.term+"?",back:String(c.explanation),box:0}))].slice(0,30);
+const DAY=864e5,IV=[0,1,3,7,14],isDue=c=>!c.due||c.due<=Date.now(),dueCount=st=>(st.cards||[]).filter(isDue).length;
 function cards(p){
   let all=cur.cards||[];
   if(!all.length){const b=cardsFromNotes(cur.notes);if(b.length){cur.cards=all=b;save({cards:b})}}
@@ -353,13 +372,27 @@ function cards(p){
       catch(e){toast(e.message);b.disabled=false;b.textContent="Generate flashcards"}};
     return;
   }
-  let i=0,flip=false;
-  const draw=()=>{const c=all[i];p.innerHTML=`<p class="mute">Card ${i+1} of ${all.length} · mastered ${all.filter(x=>x.box>=3).length}</p>
-  <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap card to flip</p>
-  <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button>`;
-  $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};
-  const nx=d=>{c.box=Math.max(0,Math.min(4,(c.box||0)+d));i=(i+1)%all.length;flip=false;save({cards:all});draw()};
-  $("#yes").onclick=()=>{sfx.correct();nx(1)};$("#no").onclick=()=>nx(-1)};draw();
+  let queue=[],total=0,flip=false;
+  const begin=every=>{queue=all.map((_,i)=>i).filter(i=>every||isDue(all[i]));total=queue.length};
+  const csv=()=>{
+    const t=all.map(c=>[c.front,c.back].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=(cur.title||"flashcards").replace(/[^\w-]+/g,"_")+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  const draw=()=>{
+    if(!queue.length){
+      const next=all.map(c=>c.due).filter(d=>d>Date.now()).sort((a,b)=>a-b)[0];
+      p.innerHTML=`<div class="card hero"><h2>🎉 All caught up!</h2><p>${total?`You reviewed ${total} card${total>1?"s":""}.`:"No cards are due right now."}</p>${next?`<p class="mute">Next review: ${esc(new Date(next).toLocaleString())}</p>`:""}<button id="all">Study all cards anyway</button> <button class="alt" id="csv">⬇️ Export CSV</button></div>`;
+      $("#all").onclick=()=>{begin(true);flip=false;draw()};$("#csv").onclick=csv;return;
+    }
+    const c=all[queue[0]];
+    p.innerHTML=`<p class="mute">${queue.length} left · ${all.filter(isDue).length} due · mastered ${all.filter(x=>x.box>=3).length} of ${all.length}</p><div class="bar"><i style="width:${total?100*(total-queue.length)/total:0}%"></i></div>
+    <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap the card to flip. “Got it” spaces it further out; “Still learning” brings it back soon.</p>
+    <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>`;
+    $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};$("#csv").onclick=csv;
+    $("#yes").onclick=()=>{sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+IV[c.box]*DAY;queue.shift();flip=false;save({cards:all});draw()};
+    $("#no").onclick=()=>{c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});draw()};
+  };
+  begin(false);draw();
 }
 
 const STOP=new Set("which what that this with from have been their there about would these those where when into than then also only does most each other such because while after before between".split(" "));
@@ -398,12 +431,12 @@ function quiz(p){
     return;
   }
   let qs=[],i=0,score=0,missed=[];
-  const build=()=>{
+  const build=only=>{
     qs=(cur.quiz||[]).map((q,oi)=>({type:"mc",...q,_i:oi})).filter(q=>S.types[q.type]!==false&&(q.type==="written"?q.sample:q.options?.length&&(q.type==="multi"?q.answers?.length:q.answer!=null)));
-    if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
+    if(only)qs=qs.filter(q=>only.includes(q._i));if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
   };
-  const start=()=>{
-    build();
+  const start=only=>{
+    build(only);
     if(!qs.length)return p.innerHTML='<div class="card"><p>No questions match your quiz settings. Open ⚙️ Settings → Quizzes to turn on more question types.</p></div>';
     i=0;score=0;missed=[];draw();
   };
@@ -411,8 +444,9 @@ function quiz(p){
     const pct=Math.round(100*sc/total);
     const rev=mq.map(q=>{const loc=locate(q),ci=concept(q);
       return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">${q.type==="written"?"Model answer":"Correct answer"}: ${esc(ans(q))}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
-    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(sc*10)/10} of ${total} points</p><div class="bar"><i style="width:${pct}%"></i></div>${at?`<p class="mute">Taken ${esc(new Date(at).toLocaleString())}</p>`:""}${hist.length>1?`<p class="mute">Earlier attempts: ${hist.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${mq.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(sc*10)/10} of ${total} points</p><div class="bar"><i style="width:${pct}%"></i></div>${at?`<p class="mute">Taken ${esc(new Date(at).toLocaleString())}</p>`:""}${hist.length>1?`<p class="mute">Earlier attempts: ${hist.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button>${mq.length?' <button class="alt" id="pm">🎯 Practice only what I missed</button>':""}</div>${mq.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
     $("#re").onclick=()=>{cur.meta={...(cur.meta||{}),last:null};save({meta:cur.meta});start()};
+    if($("#pm"))$("#pm").onclick=()=>{cur.meta={...(cur.meta||{}),last:null};save({meta:cur.meta});start(mq.map(q=>q._i))};
     p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
     p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{nav="c-"+b.dataset.c;tab="notes";study()});
   };
@@ -460,7 +494,7 @@ function quiz(p){
     };
   };
   const L=cur.meta?.last;
-  if(L&&Number.isFinite(L.total)&&L.total>0)render(L.score,L.total,(L.missed||[]).map(oi=>cur.quiz?.[oi]).filter(Boolean).map(q=>({type:"mc",...q})),cur.meta.scores||[],L.at);
+  if(L&&Number.isFinite(L.total)&&L.total>0)render(L.score,L.total,(L.missed||[]).filter(oi=>cur.quiz?.[oi]).map(oi=>({type:"mc",...cur.quiz[oi],_i:oi})),cur.meta.scores||[],L.at);
   else start();
 }
 function source(p){
