@@ -44,10 +44,27 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.gal figure{margin:0}.gal img{width:100%;height:170px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line)}.gal figcaption{font-size:.85rem;margin-top:4px}
 .pas{padding:8px 10px;border-radius:10px;margin:4px 0;border-left:4px solid var(--line)}.pas.hl,.chip.hl{outline:3px solid #f59e0b;background:color-mix(in srgb,#f59e0b 22%,transparent)}
 .loc{display:inline-block;font-size:.75rem;background:var(--line);border-radius:8px;padding:0 6px;margin-right:6px}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes flowbg{to{background-position:300% 0}}@keyframes drift{to{transform:translate(4%,3%) rotate(6deg) scale(1.08)}}
+@keyframes flip{from{transform:rotateY(90deg);opacity:.4}to{transform:none;opacity:1}}
+@keyframes pulse{50%{transform:scale(1.04)}}@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes ring{0%{box-shadow:0 0 0 0 #ec489988}100%{box-shadow:0 0 0 18px #ec489900}}@keyframes up{from{opacity:0;transform:translate(-50%,20px)}}
+@keyframes bounce{40%{transform:translateY(-8px) rotate(-8deg)}70%{transform:translateY(0) rotate(6deg)}}@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.8}}
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 20% 20%,#5b4bdb26,transparent 40%),radial-gradient(circle at 80% 30%,#ec489922,transparent 40%),radial-gradient(circle at 50% 90%,#0ea5e922,transparent 40%);animation:drift 18s ease-in-out infinite alternate}
+header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9,#ec4899,#5b4bdb);background-size:300% 100%;animation:flowbg 14s linear infinite}
+h1{display:inline-block;transition:transform .3s}h1:hover{transform:rotate(-4deg) scale(1.06)}
+.card{animation:pop .4s ease both;transition:transform .2s,box-shadow .2s}.set:hover,.chip:hover{transform:translateY(-4px);box-shadow:0 8px 22px #0002}
+.set:hover .ico{animation:bounce .6s}.card.sec{animation-delay:.05s}
+button{transition:transform .12s,filter .15s}button:hover:not(:disabled){filter:brightness(1.12)}button:active:not(:disabled){transform:scale(.94)}
+.fc{animation:flip .35s ease both;user-select:none}.opt.right{animation:pulse .5s}.opt.wrong{animation:shake .4s}
+.msg{animation:pop .25s ease both}#chat{animation:pop .25s ease both}#fab{animation:ring 2.4s infinite}#fab:hover{transform:scale(1.1) rotate(8deg)}#toast{animation:up .25s ease}
+#snd{padding:4px 10px;margin-right:8px}
+.conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}.conf i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header><h1>⚡ StudySpark</h1><div id="auth"></div></header>
+<header><h1>⚡ StudySpark</h1><div style="display:flex;align-items:center"><button class="alt" id="snd" title="Sound on/off">🔊</button><div id="auth"></div></div></header>
 <main id="app"></main>
 <button id="fab" title="AI study tutor" hidden>🤖</button>
 <div id="chat" hidden><div class="ch">🤖 AI study tutor <button class="alt" id="cx">✕</button></div><div id="log"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
@@ -79,6 +96,27 @@ const hue=s=>`hsl(${hash(s)%360} 70% 52%)`,icon=s=>["🧬","📐","🌍","⚗️
 const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.box>=3).length/c.length):0};
 const COL=["#5b4bdb","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0ea5e9","Process"],example:["#10b981","Example"],term:["#f59e0b","Term"]};
+let soundOn=true;try{soundOn=localStorage.getItem("snd")!=="0"}catch(e){}
+let AC=null;
+const tone=(f,d=.12,type="sine",v=.06,t0=0)=>{
+  if(!soundOn)return;
+  try{AC??=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+    const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+t0;
+    o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}
+};
+const sfx={click:()=>tone(520,.06,"triangle",.04),flip:()=>tone(400,.09,"triangle",.05),pop:()=>{tone(740,.07,"sine",.05);tone(988,.1,"sine",.05,.07)},
+  correct:()=>{tone(660,.1,"sine",.07);tone(880,.16,"sine",.07,.09)},wrong:()=>{tone(200,.25,"sawtooth",.035);tone(160,.25,"sawtooth",.03,.12)},
+  win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,"sine",.07,i*.11))};
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  const w=document.createElement("div");w.className="conf";
+  for(let i=0;i<70;i++){const e=document.createElement("i");e.style.cssText=`left:${Math.random()*100}%;background:${COL[i%COL.length]};animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*1.6}s`;w.appendChild(e)}
+  document.body.appendChild(w);setTimeout(()=>w.remove(),4200);
+}
+document.addEventListener("click",e=>{if(e.target.closest("button")&&!e.target.closest(".opt,[data-nosfx]"))sfx.click()});
+$("#snd").textContent=soundOn?"🔊":"🔇";
+$("#snd").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("snd",soundOn?"1":"0")}catch(e){}$("#snd").textContent=soundOn?"🔊":"🔇"};
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -109,7 +147,7 @@ function home(){window.speechSynthesis&&speechSynthesis.cancel();
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
-  <h2>Your library</h2><div class="grid">${sets.map(s=>`<div class="card set" style="--c:${hue(s.title)}"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
+  <h2>Your library</h2><div class="grid">${sets.map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
   <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Cards mastered: ${(s.cards||[]).filter(c=>c.box>=3).length}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
@@ -183,7 +221,7 @@ async function generate(){
   try{
     const g=await ai("/generate",{text:sample(text)});
     const data={title,created:Date.now(),text:text.slice(0,60000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null,meta:{scores:[]},visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
-    const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();
+    const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();sfx.win();confetti();
   }catch(e){toast(e.message);b.disabled=false;b.textContent="Generate study materials"}
 }
 
@@ -250,10 +288,10 @@ function cards(p){
   let i=0,flip=false;
   const draw=()=>{const c=all[i];p.innerHTML=`<p class="mute">Card ${i+1} of ${all.length} · mastered ${all.filter(x=>x.box>=3).length}</p>
   <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap card to flip</p>
-  <button class="alt" id="no">Still learning</button> <button id="yes">Got it</button>`;
-  $("#fc").onclick=()=>{flip=!flip;draw()};
+  <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button>`;
+  $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};
   const nx=d=>{c.box=Math.max(0,Math.min(4,(c.box||0)+d));i=(i+1)%all.length;flip=false;save({cards:all});draw()};
-  $("#yes").onclick=()=>nx(1);$("#no").onclick=()=>nx(-1)};draw();
+  $("#yes").onclick=()=>{sfx.correct();nx(1)};$("#no").onclick=()=>nx(-1)};draw();
 }
 
 const STOP=new Set("which what that this with from have been their there about would these those where when into than then also only does most each other such because while after before between".split(" "));
@@ -289,6 +327,7 @@ function quiz(p){
     const rev=missed.map(q=>{const loc=locate(q),ci=concept(q);
       return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">Correct answer: ${esc(q.options[q.answer])}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
     p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${score} of ${qs.length} correct</p><div class="bar"><i style="width:${pct}%"></i></div>${sc.length>1?`<p class="mute">Earlier attempts: ${sc.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${missed.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    if(pct>=80){confetti();sfx.win()}
     $("#re").onclick=()=>{i=0;score=0;missed=[];draw()};
     p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
     p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{nav="c-"+b.dataset.c;tab="notes";study()});
@@ -298,7 +337,7 @@ function quiz(p){
     const q=qs[i];p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}</p><div class="card"><b>${esc(q.q)}</b>
     ${q.options.map((o,k)=>`<button class="alt opt" data-k="${k}">${esc(o)}</button>`).join("")}<p id="ex" class="mute"></p></div>`;
     p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
-      const k=+b.dataset.k;if(k===q.answer)score++;else missed.push(q);
+      const k=+b.dataset.k;if(k===q.answer){score++;sfx.correct()}else{missed.push(q);sfx.wrong()}
       p.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===q.answer)x.classList.add("right");else if(j===k)x.classList.add("wrong")});
       $("#ex").innerHTML=esc(q.explain)+'<br><br><button id="nx">Next</button>';$("#nx").onclick=()=>{i++;draw()}});
   };draw();
@@ -426,7 +465,7 @@ $("#q").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#se
 $("#send").onclick=async()=>{
   const q=$("#q").value.trim();if(!q)return;const h=hist();h.push({role:"user",content:q});$("#q").value="";chatDraw();
   const b=$("#send");b.disabled=true;b.innerHTML='<span class="spin"></span>';
-  try{const r=await ai("/chat",{messages:h.slice(-10),context:sample(cur?.text||"",6000),selection:picked});h.push({role:"assistant",content:r.reply});picked="";chip()}
+  try{const r=await ai("/chat",{messages:h.slice(-10),context:sample(cur?.text||"",6000),selection:picked});h.push({role:"assistant",content:r.reply});picked="";chip();sfx.pop()}
   catch(e){h.pop();toast(e.message)}
   b.disabled=false;b.textContent="Send";chatDraw();
 };
