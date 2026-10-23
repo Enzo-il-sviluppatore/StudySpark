@@ -70,6 +70,7 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
 .sw{width:44px;height:32px;border-radius:10px;border:3px solid transparent;padding:0}.sw.on{border-color:var(--ink)}
 .optw{margin:6px 0}.optw .opt{margin:0}.opt.sel{background:var(--brand);color:#fff}.opt.miss{outline:3px solid #f59e0b}
 .why{font-size:.88rem;margin:3px 0 0 10px;color:var(--mute)}.why.g{color:var(--ok)}.why.b{color:var(--bad)}
+.spark{display:flex;align-items:flex-end;gap:6px;height:100px;margin:8px 0}.spark div{flex:1;min-width:14px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--g2,#0ea5e9),var(--g1,#5b4bdb));text-align:center;font-size:.7rem;color:#fff;animation:pop .4s ease both}
 </style>
 </head>
 <body>
@@ -224,8 +225,8 @@ function home(){window.speechSynthesis&&speechSynthesis.cancel();
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
-  <h2>Your library</h2><div class="grid">${sets.map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
-  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
+  <h2>Your library</h2><div class="grid">${libraryList().map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
+  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${learnLine(s)}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
   $("#go").onclick=generate;
@@ -304,11 +305,11 @@ async function generate(){
 
 /* ---------- Study view ---------- */
 function study(){window.speechSynthesis&&speechSynthesis.cancel();
-  app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2>
-  <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),"source","add"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
+  app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2><p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
+  <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),"progress","source","add"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   $("#back").onclick=()=>home();
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
-  ({notes,visuals,cards,quiz,talk,source,add:addTab})[tab]($("#pane"));
+  ({notes,visuals,cards,quiz,talk,progress,source,add:addTab})[tab]($("#pane"));
   if(nav){const e=document.getElementById(nav);nav=null;if(e){e.classList.add("hl");e.scrollIntoView({block:"center",behavior:"smooth"})}}
 }
 const save=p=>setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code));
@@ -362,6 +363,12 @@ function conceptMap(el,d){
 
 const cardsFromNotes=n=>[...(n?.vocab||[]).filter(v=>v&&v.word&&v.definition).map(v=>({front:String(v.word),back:String(v.definition),box:0})),...(n?.concepts||[]).filter(c=>c&&c.term&&c.explanation).map(c=>({front:"What is "+c.term+"?",back:String(c.explanation),box:0}))].slice(0,30);
 const DAY=864e5,IV=[0,1,3,7,14],isDue=c=>!c.due||c.due<=Date.now(),dueCount=st=>(st.cards||[]).filter(isDue).length;
+const learnEnd=st=>st.meta?.learnBy?new Date(st.meta.learnBy+"T23:59:59"):null;
+const daysLeft=st=>{const e=learnEnd(st);return e?Math.ceil((e-Date.now())/DAY):null};
+const learnLine=st=>{const d=daysLeft(st);if(d==null)return"";const col=d<0?"#9aa2bf":d<=3?"#ef4444":d<=7?"#f59e0b":"#10b981";
+  return `<br><b style="color:${col}">📅 ${d<0?"Learn-by date passed":d===0?"Learn by today!":d+" day"+(d>1?"s":"")+" left"}</b>`};
+const libraryList=()=>[...sets].sort((a,b)=>{const k=x=>{const d=daysLeft(x);return d==null?1e9:d<0?1e8:d};return k(a)-k(b)});
+const interval=box=>{let d=IV[box];const e=learnEnd(cur);if(e){const left=(e-Date.now())/DAY;if(left>0)d=Math.min(d,Math.max(.25,left/3))}return d*DAY};
 function cards(p){
   let all=cur.cards||[];
   if(!all.length){const b=cardsFromNotes(cur.notes);if(b.length){cur.cards=all=b;save({cards:b})}}
@@ -389,7 +396,7 @@ function cards(p){
     <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap the card to flip. “Got it” spaces it further out; “Still learning” brings it back soon.</p>
     <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>`;
     $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};$("#csv").onclick=csv;
-    $("#yes").onclick=()=>{sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+IV[c.box]*DAY;queue.shift();flip=false;save({cards:all});draw()};
+    $("#yes").onclick=()=>{sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+interval(c.box);queue.shift();flip=false;save({cards:all});draw()};
     $("#no").onclick=()=>{c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});draw()};
   };
   begin(false);draw();
@@ -496,6 +503,29 @@ function quiz(p){
   const L=cur.meta?.last;
   if(L&&Number.isFinite(L.total)&&L.total>0)render(L.score,L.total,(L.missed||[]).filter(oi=>cur.quiz?.[oi]).map(oi=>({type:"mc",...cur.quiz[oi],_i:oi})),cur.meta.scores||[],L.at);
   else start();
+}
+function progress(p){
+  const cs=cur.cards||[],mastered=cs.filter(c=>c.box>=3).length,due=cs.filter(isDue).length,mp=cs.length?Math.round(100*mastered/cs.length):0;
+  const sc=cur.meta?.scores||[],last=sc.length?sc[sc.length-1].pct:null,best=sc.length?Math.max(...sc.map(x=>x.pct)):null;
+  const L=cur.meta?.learnBy,d=daysLeft(cur),today=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  const ready=Math.round(last==null?mp:(mp+last)/2);
+  let plan="",status="";
+  if(L&&d!=null&&d>0){
+    const from=cur.meta.learnFrom||Date.now(),span=Math.max(DAY,learnEnd(cur)-from),expected=Math.min(100,Math.max(0,100*(Date.now()-from)/span)),left=cs.length-mastered,per=Math.ceil(left/d);
+    status=ready>=85?"🎯 You’re ready!":ready>=expected*.8?"✅ On track":"⚠️ Behind schedule. Do today’s due cards and a quiz.";
+    plan=`<ul><li>Master about <b>${per}</b> new card${per===1?"":"s"} a day (${left} left to master)</li><li>Review the <b>${due}</b> card${due===1?"":"s"} due today</li><li>Take the quiz at least <b>${Math.min(3,Math.max(1,Math.floor(d/2)))}</b> more time${d>3?"s":""} before the date and aim for 80%+</li></ul>`;
+  }else if(L&&d===0)status="📅 It’s today! Do a final review.";else if(L)status="The date has passed. Pick a new one to keep a plan.";
+  const nice=L?new Date(L+"T00:00:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}):"";
+  p.innerHTML=`<div class="card sec" style="--c:#0ea5e9"><h3>📅 Learn by</h3><p class="mute">Pick the date you want to know this material by (an exam or deadline). Flashcard reviews are then scheduled so every card comes up before it.</p>
+  <p><input type="date" id="lb" min="${today}" value="${esc(L||"")}"> <button id="lbs">Save date</button> ${L?'<button class="alt" id="lbc">Clear</button>':""}</p>
+  ${L?`<p><b>${esc(nice)}</b> ${d>0?"· "+d+" day"+(d>1?"s":"")+" left":""}</p>${status?`<h3 style="margin:6px 0">${status}</h3>`:""}${plan?"<p><b>Suggested plan</b></p>"+plan:""}`:""}</div>
+  <div class="card sec" style="--c:#10b981"><h3>📈 Progress</h3><p>Flashcards mastered: <b>${mastered}</b> of ${cs.length} (${mp}%)</p><div class="bar"><i style="width:${mp}%"></i></div>
+  <p>Cards due today: <b>${due}</b></p><p>Quiz: ${last==null?'<span class="mute">not taken yet</span>':`last <b>${last}%</b> · best <b>${best}%</b> · ${sc.length} attempt${sc.length>1?"s":""}`}</p>
+  ${sc.length?`<div class="spark">${sc.slice(-12).map(x=>`<div style="height:${Math.max(8,x.pct)}%" title="${x.pct}%">${x.pct}</div>`).join("")}</div><p class="mute">Your last ${Math.min(12,sc.length)} quiz scores</p>`:""}
+  <p>Overall readiness: <b>${ready}%</b> <span class="mute">(average of flashcard mastery and your latest quiz)</span></p></div>`;
+  $("#lbs").onclick=()=>{const v=$("#lb").value;if(!v)return toast("Pick a date first.");if(v<today)return toast("Pick today or a future date.");
+    cur.meta={...(cur.meta||{}),learnBy:v,learnFrom:Date.now()};save({meta:cur.meta});toast("Date saved. Flashcard reviews now fit before it.");study()};
+  if($("#lbc"))$("#lbc").onclick=()=>{cur.meta={...(cur.meta||{}),learnBy:null,learnFrom:null};save({meta:cur.meta});study()};
 }
 function source(p){
   const P=passages(cur.text||"");let last=null;
