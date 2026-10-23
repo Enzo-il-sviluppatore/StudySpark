@@ -279,7 +279,7 @@ async function generate(){
   const b=$("#go");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating… (10–30s)';
   try{
     const g=await ai("/generate",{text:sample(text)});
-    const data={title,created:Date.now(),text:text.slice(0,60000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null,meta:{scores:[]},visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
+    const data={title,created:Date.now(),text:text.slice(0,60000),notes:g.notes,cards:(g.cards||[]).length?g.cards.map(c=>({front:String(c.front),back:String(c.back),box:0})):cardsFromNotes(g.notes),quiz:g.quiz||[],lastScore:null,meta:{scores:[]},visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
     const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();sfx.win();confetti();
   }catch(e){toast(e.message);b.disabled=false;b.textContent="Generate study materials"}
 }
@@ -342,8 +342,17 @@ function conceptMap(el,d){
   draw();
 }
 
+const cardsFromNotes=n=>[...(n?.vocab||[]).filter(v=>v&&v.word&&v.definition).map(v=>({front:String(v.word),back:String(v.definition),box:0})),...(n?.concepts||[]).filter(c=>c&&c.term&&c.explanation).map(c=>({front:"What is "+c.term+"?",back:String(c.explanation),box:0}))].slice(0,30);
 function cards(p){
-  const all=cur.cards||[];if(!all.length)return p.innerHTML="<p>No cards.</p>";
+  let all=cur.cards||[];
+  if(!all.length){const b=cardsFromNotes(cur.notes);if(b.length){cur.cards=all=b;save({cards:b})}}
+  if(!all.length){
+    p.innerHTML='<div class="card hero"><h3>No flashcards in this set yet</h3><p class="mute">You can generate them now from your saved notes.</p><button id="gc">Generate flashcards</button></div>';
+    $("#gc").onclick=async()=>{const b=$("#gc");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating…';
+      try{const g=await ai("/generate",{text:sample(cur.text||"")});const c=(g.cards||[]).map(x=>({front:String(x.front),back:String(x.back),box:0}));if(!c.length)throw new Error("The AI didn’t return flashcards this time. Try again.");cur.cards=c;save({cards:c});cards(p)}
+      catch(e){toast(e.message);b.disabled=false;b.textContent="Generate flashcards"}};
+    return;
+  }
   let i=0,flip=false;
   const draw=()=>{const c=all[i];p.innerHTML=`<p class="mute">Card ${i+1} of ${all.length} · mastered ${all.filter(x=>x.box>=3).length}</p>
   <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap card to flip</p>
