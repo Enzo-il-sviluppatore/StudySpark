@@ -397,20 +397,31 @@ function quiz(p){
       catch(e){toast(e.message);b.disabled=false;b.textContent="Generate quiz questions"}};
     return;
   }
-  let qs=(cur.quiz||[]).map(q=>({type:"mc",...q})).filter(q=>S.types[q.type]!==false&&(q.type==="written"?q.sample:q.options?.length&&(q.type==="multi"?q.answers?.length:q.answer!=null)));
-  if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
-  if(!qs.length)return p.innerHTML='<div class="card"><p>No questions match your quiz settings. Open ⚙️ Settings → Quizzes to turn on more question types.</p></div>';
-  let i=0,score=0,missed=[];
-  const result=()=>{
-    const pct=Math.round(100*score/qs.length),sc=[...(cur.meta?.scores||[]),{at:Date.now(),pct}].slice(-20);
-    cur.meta={...(cur.meta||{}),scores:sc};cur.lastScore=score;save({lastScore:score,meta:cur.meta});
-    const rev=missed.map(q=>{const loc=locate(q),ci=concept(q);
+  let qs=[],i=0,score=0,missed=[];
+  const build=()=>{
+    qs=(cur.quiz||[]).map((q,oi)=>({type:"mc",...q,_i:oi})).filter(q=>S.types[q.type]!==false&&(q.type==="written"?q.sample:q.options?.length&&(q.type==="multi"?q.answers?.length:q.answer!=null)));
+    if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
+  };
+  const start=()=>{
+    build();
+    if(!qs.length)return p.innerHTML='<div class="card"><p>No questions match your quiz settings. Open ⚙️ Settings → Quizzes to turn on more question types.</p></div>';
+    i=0;score=0;missed=[];draw();
+  };
+  const render=(sc,total,mq,hist,at)=>{
+    const pct=Math.round(100*sc/total);
+    const rev=mq.map(q=>{const loc=locate(q),ci=concept(q);
       return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">${q.type==="written"?"Model answer":"Correct answer"}: ${esc(ans(q))}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
-    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(score*10)/10} of ${qs.length} points</p><div class="bar"><i style="width:${pct}%"></i></div>${sc.length>1?`<p class="mute">Earlier attempts: ${sc.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${missed.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
-    if(pct>=80){confetti();sfx.win()}
-    $("#re").onclick=()=>{i=0;score=0;missed=[];draw()};
+    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(sc*10)/10} of ${total} points</p><div class="bar"><i style="width:${pct}%"></i></div>${at?`<p class="mute">Taken ${esc(new Date(at).toLocaleString())}</p>`:""}${hist.length>1?`<p class="mute">Earlier attempts: ${hist.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${mq.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    $("#re").onclick=()=>{cur.meta={...(cur.meta||{}),last:null};save({meta:cur.meta});start()};
     p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
     p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{nav="c-"+b.dataset.c;tab="notes";study()});
+  };
+  const result=()=>{
+    const pct=Math.round(100*score/qs.length),at=Date.now(),hist=[...(cur.meta?.scores||[]),{at,pct}].slice(-20);
+    cur.meta={...(cur.meta||{}),scores:hist,last:{score,total:qs.length,pct,missed:missed.map(q=>q._i),at}};
+    cur.lastScore=score;save({lastScore:score,meta:cur.meta});
+    render(score,qs.length,missed,hist,at);
+    if(pct>=80){confetti();sfx.win()}
   };
   const finish=(q,pts)=>{
     score+=pts;if(pts<1)missed.push(q);p.querySelectorAll("[data-sg]").forEach(e=>e.remove());
@@ -447,7 +458,10 @@ function quiz(p){
       else{$("#ex").innerHTML=model+'<p><b>The AI couldn’t grade this, so mark yourself:</b></p><button class="alt" data-sg="1">✅ Got it</button> <button class="alt" data-sg=".5">🟡 Partly</button> <button class="alt" data-sg="0">❌ Not yet</button>';
         p.querySelectorAll("[data-sg]").forEach(x=>x.onclick=()=>{const v=+x.dataset.sg;v>=1?sfx.correct():sfx.wrong();finish(q,v)})}
     };
-  };draw();
+  };
+  const L=cur.meta?.last;
+  if(L&&Number.isFinite(L.total)&&L.total>0)render(L.score,L.total,(L.missed||[]).map(oi=>cur.quiz?.[oi]).filter(Boolean).map(q=>({type:"mc",...q})),cur.meta.scores||[],L.at);
+  else start();
 }
 function source(p){
   const P=passages(cur.text||"");let last=null;
