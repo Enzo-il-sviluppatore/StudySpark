@@ -37,6 +37,11 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 #log{flex:1;overflow-y:auto;padding:10px}.cin{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}.cin textarea{min-height:44px;height:44px;resize:none}
 #ask{position:fixed;z-index:21;border-radius:20px;background:linear-gradient(135deg,#ec4899,#5b4bdb);box-shadow:0 4px 14px #0005;padding:6px 12px;font-size:.85rem}
 #pk{display:flex;gap:6px;align-items:center;padding:6px 10px;font-size:.8rem;background:color-mix(in srgb,#f59e0b 18%,transparent);border-top:1px solid var(--line)}#pk span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#pk button{padding:0 8px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}.flow .chip{flex:1 1 150px}.ar{align-self:center;font-size:1.3rem;color:var(--mute)}
+.num{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--c);color:#fff;align-items:center;justify-content:center;font-size:.8rem;margin-right:6px}
+.cmp{border-collapse:collapse;width:100%}.cmp th{color:#fff;padding:8px}.cmp td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tl{border-left:3px solid var(--line);margin-left:8px;padding-left:18px}.tl>div{position:relative;margin-bottom:12px}.tl>div::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--c)}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.gal figure{margin:0}.gal img{width:100%;height:170px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line)}.gal figcaption{font-size:.85rem;margin-top:4px}
 </style>
 </head>
 <body>
@@ -96,7 +101,7 @@ async function loadSets(){
 }
 
 /* ---------- Library / upload ---------- */
-function home(){
+function home(){window.speechSynthesis&&speechSynthesis.cancel();
   app.innerHTML=`<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
   <p><input type="file" id="file" accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx, up to 5 MB</span></p>
@@ -156,18 +161,18 @@ async function generate(){
   const b=$("#go");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating… (10–30s)';
   try{
     const g=await ai("/generate",{text:text.slice(0,14000)});
-    const data={title,created:Date.now(),text:text.slice(0,30000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null};
+    const data={title,created:Date.now(),text:text.slice(0,30000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null,visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
     const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();
   }catch(e){toast(e.message);b.disabled=false;b.textContent="Generate study materials"}
 }
 
 /* ---------- Study view ---------- */
-function study(){
+function study(){window.speechSynthesis&&speechSynthesis.cancel();
   app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2>
-  <div class="tabs">${["notes","cards","quiz"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
+  <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   $("#back").onclick=()=>home();
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
-  ({notes,cards,quiz})[tab]($("#pane"));
+  ({notes,visuals,cards,quiz,talk})[tab]($("#pane"));
 }
 const save=p=>setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code));
 
@@ -241,6 +246,57 @@ function quiz(p){
       const k=+b.dataset.k;if(k===q.answer)score++;
       p.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===q.answer)x.classList.add("right");else if(j===k)x.classList.add("wrong")});
       $("#ex").innerHTML=esc(q.explain)+'<br><br><button id="nx">Next</button>';$("#nx").onclick=()=>{i++;draw()}});
+  };draw();
+}
+
+/* ---------- Visuals & conversations ---------- */
+async function findImage(q){
+  try{
+    const r=await fetch("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch="+encodeURIComponent(q)+"&prop=imageinfo&iiprop=url|mime|extmetadata&iiurlwidth=500");
+    if(!r.ok)return null;
+    const pages=Object.values((await r.json()).query?.pages||{}).sort((a,b)=>a.index-b.index);
+    for(const pg of pages){
+      const i=pg.imageinfo?.[0];
+      if(!i||!/^image\/(jpeg|png|svg\+xml)$/.test(i.mime)||!String(i.thumburl).startsWith("https://upload.wikimedia.org/"))continue;
+      const m=i.extmetadata||{},strip=h=>String(h||"").replace(/<[^>]*>/g,"").trim().slice(0,70);
+      return{src:i.thumburl,page:String(i.descriptionurl).startsWith("https://commons.wikimedia.org/")?i.descriptionurl:"https://commons.wikimedia.org/",credit:strip(m.Artist?.value)||"Unknown author",lic:strip(m.LicenseShortName?.value)};
+    }
+  }catch(e){}
+  return null;
+}
+async function visuals(p){
+  const v=cur.visuals||{},n=cur.notes||{},st=v.steps,c=v.compare;
+  const sec=(col,h,b)=>`<div class="card sec" style="--c:${col}"><h3>${h}</h3>${b}</div>`;
+  let html="";
+  if(st?.items?.length)html+=sec("#0ea5e9","🔄 "+esc(st.title||"Process"),`<div class="flow">${st.items.map((x,i)=>`${i?'<span class="ar">➜</span>':""}<div class="chip" style="--c:${COL[i%COL.length]}"><span class="num">${i+1}</span><b>${esc(x.label)}</b><br>${esc(x.detail)}</div>`).join("")}${st.cycle?'<span class="ar">↻ repeats</span>':""}</div>`);
+  if(c?.rows?.length)html+=sec("#8b5cf6","⚖️ "+esc(c.title||"Comparison"),`<div style="overflow-x:auto"><table class="cmp"><tr><th></th><th style="background:${COL[0]}">${esc(c.left)}</th><th style="background:${COL[2]}">${esc(c.right)}</th></tr>${c.rows.map(r=>`<tr><td><b>${esc(r.aspect)}</b></td><td>${esc(r.left)}</td><td>${esc(r.right)}</td></tr>`).join("")}</table></div>`);
+  if(Array.isArray(v.timeline)&&v.timeline.length)html+=sec("#f59e0b","⏳ Timeline",`<div class="tl">${v.timeline.map((x,i)=>`<div style="--c:${COL[i%COL.length]}"><b>${esc(x.when)}</b><br>${esc(x.what)}</div>`).join("")}</div>`);
+  p.innerHTML=html+sec("#ec4899","🖼️ Images",'<div id="imgs" class="mute">Looking for images…</div>');
+  let imgs=v.images||[];
+  if(!v.resolved){
+    const qs=imgs.length?imgs:(n.concepts||[]).slice(0,4).map(x=>({query:x.term,caption:x.term}));
+    imgs=(await Promise.all(qs.slice(0,5).map(async q=>{const f=await findImage(String(q.query));return f&&{...f,caption:String(q.caption||q.query)}}))).filter(Boolean);
+    cur.visuals={...v,images:imgs,resolved:true};save({visuals:cur.visuals});
+  }
+  const box=$("#imgs");if(!box)return;
+  box.className="";
+  box.innerHTML=imgs.length?`<div class="gal">${imgs.map((x,i)=>`<figure><img loading="lazy" src="${esc(x.src)}" alt="${esc(x.caption)}"><figcaption><b>${esc(x.caption)}</b><br><span class="mute">${esc(x.credit)} · ${esc(x.lic)} · <a href="${esc(x.page)}" target="_blank" rel="noopener">source</a> · <a href="#" data-x="${i}">not relevant?</a></span></figcaption></figure>`).join("")}</div>`:'<p class="mute">No matching images were found for this set.</p>';
+  box.querySelectorAll("[data-x]").forEach(a=>a.onclick=e=>{e.preventDefault();imgs.splice(+a.dataset.x,1);cur.visuals.images=imgs;save({visuals:cur.visuals});visuals(p)});
+}
+function talk(p){
+  const d=cur.dialogues,lang=d.lang||"en-US",shown={};let tr=true,hide=false;
+  const stop=()=>window.speechSynthesis&&speechSynthesis.cancel();
+  const speak=(t,done)=>{if(!window.speechSynthesis)return toast("Speech isn’t supported in this browser.");const u=new SpeechSynthesisUtterance(t);u.lang=lang;if(done)u.onend=done;speechSynthesis.speak(u)};
+  const playAll=i=>{stop();const L=d.items[i].lines||[],next=j=>j<L.length&&speak(L[j].text,()=>next(j+1));next(0)};
+  const draw=()=>{
+    p.innerHTML=`<p class="mute">Tap a line to hear it (voices depend on your device). Language: ${esc(lang)}</p>
+    <p><button class="alt" id="t1">${tr?"Hide":"Show"} translations</button> <button class="${hide?"on":"alt"}" id="t2">Practice mode</button></p>`
+    +d.items.map((it,i)=>{const side={};return `<div class="card sec" style="--c:${COL[i%COL.length]}"><h3>💬 ${esc(it.title)}</h3><p><button class="alt" data-all="${i}">▶ Play all</button></p>`
+      +(it.lines||[]).map((l,j)=>{const sp=String(l.speaker);side[sp]??=Object.keys(side).length%2;const k=i+"-"+j,hid=hide&&!shown[k];
+        return `<div class="msg ${side[sp]?"me":"ai"}" data-k="${k}" data-i="${i}" data-j="${j}" style="cursor:pointer"><b>${esc(sp)}</b><br>${hid?`<i>${esc(l.translation)}</i><br><small>👆 tap to reveal</small>`:`${esc(l.text)}${tr?`<br><small style="opacity:.8">${esc(l.translation)}</small>`:""}`}</div>`}).join("")+"</div>"}).join("");
+    $("#t1").onclick=()=>{tr=!tr;draw()};$("#t2").onclick=()=>{hide=!hide;draw()};
+    p.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>playAll(+b.dataset.all));
+    p.querySelectorAll("[data-k]").forEach(m=>m.onclick=()=>{shown[m.dataset.k]=true;stop();speak(d.items[m.dataset.i].lines[m.dataset.j].text);draw()});
   };draw();
 }
 
