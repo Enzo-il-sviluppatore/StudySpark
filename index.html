@@ -381,6 +381,13 @@ const ans=q=>q.type==="written"?q.sample:q.type==="multi"?q.answers.map(k=>q.opt
 const isOK=(q,k)=>q.type==="multi"?q.answers.includes(k):k===q.answer;
 const shuf=a=>a.map(x=>[Math.random(),x]).sort((m,n)=>m[0]-n[0]).map(x=>x[1]);
 function quiz(p){
+  if(!(cur.quiz||[]).length){
+    p.innerHTML='<div class="card hero"><h3>No quiz questions in this set yet</h3><p class="mute">The AI didn’t return any when this set was created. You can generate them now from your saved notes.</p><button id="gq">Generate quiz questions</button></div>';
+    $("#gq").onclick=async()=>{const b=$("#gq");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating…';
+      try{const g=await ai("/generate",{text:sample(cur.text||"")});if(!(g.quiz||[]).length)throw new Error("The AI didn’t return questions this time. Try again.");cur.quiz=g.quiz;save({quiz:cur.quiz});quiz(p)}
+      catch(e){toast(e.message);b.disabled=false;b.textContent="Generate quiz questions"}};
+    return;
+  }
   let qs=(cur.quiz||[]).map(q=>({type:"mc",...q})).filter(q=>S.types[q.type]!==false&&(q.type==="written"?q.sample:q.options?.length&&(q.type==="multi"?q.answers?.length:q.answer!=null)));
   if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
   if(!qs.length)return p.innerHTML='<div class="card"><p>No questions match your quiz settings. Open ⚙️ Settings → Quizzes to turn on more question types.</p></div>';
