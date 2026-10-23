@@ -6,7 +6,7 @@
 <title>StudySpark</title>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#68708a;--brand:#5b4bdb;--ok:#18a058;--bad:#d03050;--line:#e3e6f0}
-@media(prefers-color-scheme:dark){:root{--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff}}
+:root[data-theme=dark]{--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff}}
 *{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
 header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 h1{font-size:1.3rem;margin:0;color:var(--brand)}main{max-width:900px;margin:0 auto;padding:20px}
@@ -30,12 +30,12 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 .sec{border-left:6px solid var(--c)}.sec h3{margin-top:0;color:var(--c)}
 .chip{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--c) 12%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
 .lg{display:inline-flex;align-items:center;gap:5px;margin:0 12px 8px 0;font-size:.85rem}.lg i{width:12px;height:12px;border-radius:50%}
-.fc{background:linear-gradient(135deg,#5b4bdb,#0ea5e9);color:#fff;border:0}.fc.back{background:linear-gradient(135deg,#10b981,#f59e0b)}
-#fab{position:fixed;right:18px;bottom:18px;width:60px;height:60px;border-radius:50%;font-size:1.7rem;padding:0;background:linear-gradient(135deg,#ec4899,#5b4bdb);box-shadow:0 6px 20px #0005;z-index:20;display:flex;align-items:center;justify-content:center}
+.fc{background:linear-gradient(135deg,var(--g1,#5b4bdb),var(--g2,#0ea5e9));color:#fff;border:0}.fc.back{background:linear-gradient(135deg,#10b981,#f59e0b)}
+#fab{position:fixed;right:18px;bottom:18px;width:60px;height:60px;border-radius:50%;font-size:1.7rem;padding:0;background:linear-gradient(135deg,var(--g3,#ec4899),var(--g1,#5b4bdb));box-shadow:0 6px 20px #0005;z-index:20;display:flex;align-items:center;justify-content:center}
 #chat{position:fixed;right:18px;bottom:90px;width:min(380px,calc(100vw - 36px));height:min(520px,70vh);background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 40px #0006;z-index:20;display:flex;flex-direction:column;overflow:hidden}
-.ch{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:linear-gradient(90deg,#ec4899,#5b4bdb);color:#fff;font-weight:600}.ch button{padding:2px 9px;color:#fff;border-color:#fff8}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:linear-gradient(90deg,var(--g3,#ec4899),var(--g1,#5b4bdb));color:#fff;font-weight:600}.ch button{padding:2px 9px;color:#fff;border-color:#fff8}
 #log{flex:1;overflow-y:auto;padding:10px}.cin{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}.cin textarea{min-height:44px;height:44px;resize:none}
-#ask{position:fixed;z-index:21;border-radius:20px;background:linear-gradient(135deg,#ec4899,#5b4bdb);box-shadow:0 4px 14px #0005;padding:6px 12px;font-size:.85rem}
+#ask{position:fixed;z-index:21;border-radius:20px;background:linear-gradient(135deg,var(--g3,#ec4899),var(--g1,#5b4bdb));box-shadow:0 4px 14px #0005;padding:6px 12px;font-size:.85rem}
 #pk{display:flex;gap:6px;align-items:center;padding:6px 10px;font-size:.8rem;background:color-mix(in srgb,#f59e0b 18%,transparent);border-top:1px solid var(--line)}#pk span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#pk button{padding:0 8px}
 .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}.flow .chip{flex:1 1 150px}.ar{align-self:center;font-size:1.3rem;color:var(--mute)}
 .num{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--c);color:#fff;align-items:center;justify-content:center;font-size:.8rem;margin-right:6px}
@@ -51,7 +51,7 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 @keyframes ring{0%{box-shadow:0 0 0 0 #ec489988}100%{box-shadow:0 0 0 18px #ec489900}}@keyframes up{from{opacity:0;transform:translate(-50%,20px)}}
 @keyframes bounce{40%{transform:translateY(-8px) rotate(-8deg)}70%{transform:translateY(0) rotate(6deg)}}@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.8}}
 body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 20% 20%,#5b4bdb26,transparent 40%),radial-gradient(circle at 80% 30%,#ec489922,transparent 40%),radial-gradient(circle at 50% 90%,#0ea5e922,transparent 40%);animation:drift 18s ease-in-out infinite alternate}
-header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9,#ec4899,#5b4bdb);background-size:300% 100%;animation:flowbg 14s linear infinite}
+header{background:linear-gradient(90deg,var(--g1,#5b4bdb),var(--g2,#0ea5e9),var(--g3,#ec4899),var(--g1,#5b4bdb));background-size:300% 100%;animation:flowbg 14s linear infinite}
 h1{display:inline-block;transition:transform .3s}h1:hover{transform:rotate(-4deg) scale(1.06)}
 .card{animation:pop .4s ease both;transition:transform .2s,box-shadow .2s}.set:hover,.chip:hover{transform:translateY(-4px);box-shadow:0 8px 22px #0002}
 .set:hover .ico{animation:bounce .6s}.card.sec{animation-delay:.05s}
@@ -60,11 +60,20 @@ button{transition:transform .12s,filter .15s}button:hover:not(:disabled){filter:
 .msg{animation:pop .25s ease both}#chat{animation:pop .25s ease both}#fab{animation:ring 2.4s infinite}#fab:hover{transform:scale(1.1) rotate(8deg)}#toast{animation:up .25s ease}
 #snd{padding:4px 10px;margin-right:8px}
 .conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}.conf i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
-@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){:root[data-anim=auto] *,:root[data-anim=auto] *::before{animation:none!important;transition:none!important}}
+:root[data-anim=off] *,:root[data-anim=off] *::before{animation:none!important;transition:none!important}
+:root[data-anim=reduced] body::before,:root[data-anim=reduced] header,:root[data-anim=reduced] #fab,:root[data-anim=reduced] .card{animation:none!important}
+select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}input[type=range]{width:140px}
+.modal{position:fixed;inset:0;background:#0009;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.panel{background:var(--card);color:var(--ink);border-radius:16px;max-width:540px;width:100%;max-height:88vh;overflow:auto;padding:20px;animation:pop .25s}.panel h3{margin:18px 0 4px;color:var(--brand)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0}.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button.on{background:var(--brand);color:#fff}
+.sw{width:44px;height:32px;border-radius:10px;border:3px solid transparent;padding:0}.sw.on{border-color:var(--ink)}
+.optw{margin:6px 0}.optw .opt{margin:0}.opt.sel{background:var(--brand);color:#fff}.opt.miss{outline:3px solid #f59e0b}
+.why{font-size:.88rem;margin:3px 0 0 10px;color:var(--mute)}.why.g{color:var(--ok)}.why.b{color:var(--bad)}
 </style>
 </head>
 <body>
-<header><h1>⚡ StudySpark</h1><div style="display:flex;align-items:center"><button class="alt" id="snd" title="Sound on/off">🔊</button><div id="auth"></div></div></header>
+<header><h1>⚡ StudySpark</h1><div style="display:flex;align-items:center"><button class="alt" id="gear" title="Settings">⚙️</button><button class="alt" id="snd" title="Sound on/off">🔊</button><div id="auth"></div></div></header>
 <main id="app"></main>
 <button id="fab" title="AI study tutor" hidden>🤖</button>
 <div id="chat" hidden><div class="ch">🤖 AI study tutor <button class="alt" id="cx">✕</button></div><div id="log"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
@@ -87,7 +96,7 @@ const AI_URL = "https://studyspark-ai.vincenzobal12.workers.dev"; // Cloudflare 
 /* ============================================== */
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,collection,doc,addDoc,setDoc,getDocs,deleteDoc,query,orderBy} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,deleteDoc,query,orderBy} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $=s=>document.querySelector(s), app=$("#app");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -96,27 +105,77 @@ const hue=s=>`hsl(${hash(s)%360} 70% 52%)`,icon=s=>["🧬","📐","🌍","⚗️
 const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.box>=3).length/c.length):0};
 const COL=["#5b4bdb","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0ea5e9","Process"],example:["#10b981","Example"],term:["#f59e0b","Term"]};
-let soundOn=true;try{soundOn=localStorage.getItem("snd")!=="0"}catch(e){}
+const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#84cc16","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]}};
+const DEF={theme:"auto",palette:"aurora",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
+let S={...DEF,types:{...DEF.types}};
+try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})}}}catch(e){}
+const animOK=()=>S.anim==="full"||(S.anim==="auto"&&!matchMedia("(prefers-reduced-motion:reduce)").matches);
+function applySettings(){
+  const r=document.documentElement,dark=S.theme==="dark"||(S.theme==="auto"&&matchMedia("(prefers-color-scheme:dark)").matches),P=PALETTES[S.palette]||PALETTES.aurora;
+  if(S.theme==="auto")r.removeAttribute("data-theme");else r.dataset.theme=S.theme;
+  r.dataset.anim=S.anim;r.style.setProperty("--brand",P.b[dark?1:0]);P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
+  const b=$("#snd");if(b)b.textContent=S.sound?"🔊":"🔇";
+}
+let ptimer;
+function persist(){
+  try{localStorage.setItem("ss_settings",JSON.stringify(S))}catch(e){}
+  applySettings();clearTimeout(ptimer);
+  ptimer=setTimeout(()=>{if(user)setDoc(doc(db,"users",user.uid,"prefs","settings"),S).catch(()=>{})},800);
+}
+async function loadPrefs(u){
+  try{const d=await getDoc(doc(db,"users",u.uid,"prefs","settings"));
+    if(d.exists()){const r=d.data();S={...S,...r,types:{...S.types,...(r.types||{})}};try{localStorage.setItem("ss_settings",JSON.stringify(S))}catch(e){}applySettings()}}catch(e){}
+}
+matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",applySettings);
+function openSettings(){
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";document.body.appendChild(m);
+  const seg=(key,opts)=>`<div class="seg">${opts.map(([v,l])=>`<button class="${S[key]===v?"on":"alt"}" data-k="${key}" data-v="${v}">${l}</button>`).join("")}</div>`;
+  const chk=(label,on,key)=>`<label class="row"><span>${label}</span><input type="checkbox" data-c="${key}" ${on?"checked":""}></label>`;
+  const draw=()=>{m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⚙️ Settings</h2><button class="alt" id="sx">✕</button></div>
+  <h3>🎨 Appearance</h3><div class="row"><span>Theme</span>${seg("theme",[["auto","Auto"],["light","☀️ Light"],["dark","🌙 Dark"]])}</div>
+  <div class="row"><span>Colours</span><div class="seg">${Object.entries(PALETTES).map(([id,p])=>`<button class="sw ${S.palette===id?"on":""}" title="${p.n}" data-pal="${id}" style="background:linear-gradient(135deg,${p.g[0]},${p.g[1]},${p.g[2]})"></button>`).join("")}</div></div>
+  <h3>🔊 Sound</h3>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
+  <h3>✨ Animations</h3><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
+  <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
+  <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
+  ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
+  <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
+  draw();
+  m.onclick=e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();
+    const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.k){S[b.dataset.k]=b.dataset.v;persist();draw()}
+    else if(b.dataset.pal){S.palette=b.dataset.pal;persist();draw()}
+    else if(b.id==="tst")sfx.correct();
+    else if(b.id==="rst"){S={...DEF,types:{...DEF.types}};persist();draw()}
+  };
+  m.onchange=e=>{const t=e.target;
+    if(t.dataset.c){const k=t.dataset.c;if(k.startsWith("t:"))S.types[k.slice(2)]=t.checked;else S[k]=t.checked;persist()}
+    if(t.id==="qn"){S.qn=+t.value;persist()}if(t.id==="vol"){S.vol=+t.value;persist()}};
+}
 let AC=null;
 const tone=(f,d=.12,type="sine",v=.06,t0=0)=>{
-  if(!soundOn)return;
+  if(!S.sound)return;
   try{AC??=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
     const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+t0;
-    o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v*S.vol/.6,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
     o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}
 };
 const sfx={click:()=>tone(520,.06,"triangle",.04),flip:()=>tone(400,.09,"triangle",.05),pop:()=>{tone(740,.07,"sine",.05);tone(988,.1,"sine",.05,.07)},
   correct:()=>{tone(660,.1,"sine",.07);tone(880,.16,"sine",.07,.09)},wrong:()=>{tone(200,.25,"sawtooth",.035);tone(160,.25,"sawtooth",.03,.12)},
   win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,"sine",.07,i*.11))};
 function confetti(){
-  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  if(!animOK())return;
   const w=document.createElement("div");w.className="conf";
   for(let i=0;i<70;i++){const e=document.createElement("i");e.style.cssText=`left:${Math.random()*100}%;background:${COL[i%COL.length]};animation-delay:${Math.random()*.6}s;animation-duration:${1.6+Math.random()*1.6}s`;w.appendChild(e)}
   document.body.appendChild(w);setTimeout(()=>w.remove(),4200);
 }
 document.addEventListener("click",e=>{if(e.target.closest("button")&&!e.target.closest(".opt,[data-nosfx]"))sfx.click()});
-$("#snd").textContent=soundOn?"🔊":"🔇";
-$("#snd").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("snd",soundOn?"1":"0")}catch(e){}$("#snd").textContent=soundOn?"🔊":"🔇"};
+applySettings();
+$("#snd").onclick=()=>{S.sound=!S.sound;persist()};
+$("#gear").onclick=openSettings;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const m=$("#sm");m&&m.remove()}});
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -132,7 +191,7 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account.</p></div>`;return}
-  await loadSets();home();
+  await loadPrefs(u);await loadSets();home();
 });
 
 async function loadSets(){
@@ -308,38 +367,70 @@ function passages(text){
   return out;
 }
 function locate(q){
-  const want=toks(q.q+" "+q.options[q.answer]+" "+(q.explain||"")),P=passages(cur.text||"");
+  const want=toks(q.q+" "+ans(q)+" "+(q.explain||"")),P=passages(cur.text||"");
   let best=null,bs=0;
   P.forEach((p,i)=>{const t=toks(p.text);let sc=0;want.forEach(w=>t.has(w)&&sc++);if(sc>bs){bs=sc;best={...p,i}}});
   return bs>=2?best:null;
 }
 function concept(q){
-  const want=toks(q.q+" "+q.options[q.answer]+" "+(q.explain||""));let best=-1,bs=1;
+  const want=toks(q.q+" "+ans(q)+" "+(q.explain||""));let best=-1,bs=1;
   (cur.notes?.concepts||[]).forEach((c,i)=>{const t=toks(c.term+" "+c.explanation);let sc=0;want.forEach(w=>t.has(w)&&sc++);if(sc>bs){bs=sc;best=i}});
   return best;
 }
+const ans=q=>q.type==="written"?q.sample:q.type==="multi"?q.answers.map(k=>q.options[k]).join("; "):q.options[q.answer];
+const isOK=(q,k)=>q.type==="multi"?q.answers.includes(k):k===q.answer;
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((m,n)=>m[0]-n[0]).map(x=>x[1]);
 function quiz(p){
-  const qs=cur.quiz||[];if(!qs.length)return p.innerHTML="<p>No questions.</p>";
+  let qs=(cur.quiz||[]).map(q=>({type:"mc",...q})).filter(q=>S.types[q.type]!==false&&(q.type==="written"?q.sample:q.options?.length&&(q.type==="multi"?q.answers?.length:q.answer!=null)));
+  if(S.shuffleQ)qs=shuf(qs);if(S.qn)qs=qs.slice(0,S.qn);
+  if(!qs.length)return p.innerHTML='<div class="card"><p>No questions match your quiz settings. Open ⚙️ Settings → Quizzes to turn on more question types.</p></div>';
   let i=0,score=0,missed=[];
   const result=()=>{
     const pct=Math.round(100*score/qs.length),sc=[...(cur.meta?.scores||[]),{at:Date.now(),pct}].slice(-20);
     cur.meta={...(cur.meta||{}),scores:sc};cur.lastScore=score;save({lastScore:score,meta:cur.meta});
     const rev=missed.map(q=>{const loc=locate(q),ci=concept(q);
-      return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">Correct answer: ${esc(q.options[q.answer])}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
-    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${score} of ${qs.length} correct</p><div class="bar"><i style="width:${pct}%"></i></div>${sc.length>1?`<p class="mute">Earlier attempts: ${sc.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${missed.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+      return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">${q.type==="written"?"Model answer":"Correct answer"}: ${esc(ans(q))}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
+    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(score*10)/10} of ${qs.length} points</p><div class="bar"><i style="width:${pct}%"></i></div>${sc.length>1?`<p class="mute">Earlier attempts: ${sc.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${missed.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
     if(pct>=80){confetti();sfx.win()}
     $("#re").onclick=()=>{i=0;score=0;missed=[];draw()};
     p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
     p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{nav="c-"+b.dataset.c;tab="notes";study()});
   };
+  const finish=(q,pts)=>{
+    score+=pts;if(pts<1)missed.push(q);p.querySelectorAll("[data-sg]").forEach(e=>e.remove());
+    $("#ex").insertAdjacentHTML("beforeend",(q.explain?`<p>${esc(q.explain)}</p>`:"")+'<p><button id="nx">Next</button></p>');
+    $("#nx").onclick=()=>{i++;draw()};
+  };
+  const reveal=(q,picked)=>p.querySelectorAll(".opt").forEach(x=>{
+    const k=+x.dataset.k,ok=isOK(q,k),pk=picked.includes(k);x.disabled=true;x.classList.remove("sel");
+    if(ok)x.classList.add(pk||q.type==="mc"?"right":"miss");else if(pk)x.classList.add("wrong");
+    const w=$("#w"+k);if(S.why&&q.why?.[k]){w.className="why "+(ok?"g":"b");w.textContent=(ok?"✅ ":"❌ ")+q.why[k]}
+  });
   const draw=()=>{
     if(i>=qs.length)return result();
-    const q=qs[i];p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}</p><div class="card"><b>${esc(q.q)}</b>
-    ${q.options.map((o,k)=>`<button class="alt opt" data-k="${k}">${esc(o)}</button>`).join("")}<p id="ex" class="mute"></p></div>`;
-    p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
-      const k=+b.dataset.k;if(k===q.answer){score++;sfx.correct()}else{missed.push(q);sfx.wrong()}
-      p.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===q.answer)x.classList.add("right");else if(j===k)x.classList.add("wrong")});
-      $("#ex").innerHTML=esc(q.explain)+'<br><br><button id="nx">Next</button>';$("#nx").onclick=()=>{i++;draw()}});
+    const q=qs[i],ord=q.options?(S.shuffleO?shuf(q.options.map((_,k)=>k)):q.options.map((_,k)=>k)):[];
+    const tag={multi:" · ☑️ Select ALL that apply",written:" · ✍️ Written answer"}[q.type]||"";
+    p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}${tag}</p><div class="card"><b>${esc(q.q)}</b>
+    ${q.type==="written"?'<textarea id="wa" maxlength="1000" placeholder="Type your answer…"></textarea><p><button id="ck">Check answer</button></p>':ord.map(k=>`<div class="optw"><button class="alt opt" data-k="${k}">${esc(q.options[k])}</button><div class="why" id="w${k}"></div></div>`).join("")+(q.type==="multi"?'<p><button id="ck">Check answer</button></p>':"")}
+    <div id="ex" class="mute"></div></div>`;
+    if(q.type==="mc")p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const k=+b.dataset.k,ok=isOK(q,k);ok?sfx.correct():sfx.wrong();reveal(q,[k]);finish(q,ok?1:0)});
+    if(q.type==="multi"){
+      const sel=new Set();
+      p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;sel.has(k)?sel.delete(k):sel.add(k);b.classList.toggle("sel",sel.has(k))});
+      $("#ck").onclick=()=>{if(!sel.size)return toast("Select at least one answer.");
+        const hits=[...sel].filter(k=>q.answers.includes(k)).length,pts=Math.max(0,(hits-(sel.size-hits))/q.answers.length);
+        pts>=1?sfx.correct():sfx.wrong();reveal(q,[...sel]);$("#ck").remove();finish(q,pts)};
+    }
+    if(q.type==="written")$("#ck").onclick=async()=>{
+      const a=$("#wa").value.trim();if(a.length<2)return toast("Write an answer first.");
+      const b=$("#ck");b.disabled=true;b.innerHTML='<span class="spin"></span>Checking…';
+      let g=null;try{g=await ai("/grade",{q:q.q,sample:q.sample,keypoints:q.keypoints||[],answer:a})}catch(e){}
+      $("#wa").disabled=true;b.remove();
+      const model=`<p><b>Model answer:</b> ${esc(q.sample)}</p>${(q.keypoints||[]).length?`<p>Key points: ${q.keypoints.map(esc).join(" · ")}</p>`:""}`;
+      if(g){g.score>=1?sfx.correct():sfx.wrong();$("#ex").innerHTML=`<p><b>${g.score>=1?"✅ Great answer":g.score>0?"🟡 Partly right":"❌ Not quite"}:</b> ${esc(g.feedback)}</p>`+model;finish(q,g.score)}
+      else{$("#ex").innerHTML=model+'<p><b>The AI couldn’t grade this, so mark yourself:</b></p><button class="alt" data-sg="1">✅ Got it</button> <button class="alt" data-sg=".5">🟡 Partly</button> <button class="alt" data-sg="0">❌ Not yet</button>';
+        p.querySelectorAll("[data-sg]").forEach(x=>x.onclick=()=>{const v=+x.dataset.sg;v>=1?sfx.correct():sfx.wrong();finish(q,v)})}
+    };
   };draw();
 }
 function source(p){
