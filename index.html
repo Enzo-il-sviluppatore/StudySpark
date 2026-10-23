@@ -42,6 +42,8 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 .cmp{border-collapse:collapse;width:100%}.cmp th{color:#fff;padding:8px}.cmp td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
 .tl{border-left:3px solid var(--line);margin-left:8px;padding-left:18px}.tl>div{position:relative;margin-bottom:12px}.tl>div::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--c)}
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.gal figure{margin:0}.gal img{width:100%;height:170px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--line)}.gal figcaption{font-size:.85rem;margin-top:4px}
+.pas{padding:8px 10px;border-radius:10px;margin:4px 0;border-left:4px solid var(--line)}.pas.hl,.chip.hl{outline:3px solid #f59e0b;background:color-mix(in srgb,#f59e0b 22%,transparent)}
+.loc{display:inline-block;font-size:.75rem;background:var(--line);border-radius:8px;padding:0 6px;margin-right:6px}
 </style>
 </head>
 <body>
@@ -81,7 +83,7 @@ const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clea
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 const fbApp=initializeApp(firebaseConfig), auth=getAuth(fbApp), db=getFirestore(fbApp);
-let user=null, sets=[], cur=null, tab="notes";
+let user=null, sets=[], cur=null, tab="notes", nav=null;
 const setsCol=()=>collection(db,"users",user.uid,"sets");
 
 $("#auth").onclick=async e=>{
@@ -104,11 +106,11 @@ async function loadSets(){
 function home(){window.speechSynthesis&&speechSynthesis.cancel();
   app.innerHTML=`<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
-  <p><input type="file" id="file" accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx, up to 5 MB</span></p>
+  <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
   <h2>Your library</h2><div class="grid">${sets.map(s=>`<div class="card set" style="--c:${hue(s.title)}"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
-  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Cards mastered: ${(s.cards||[]).filter(c=>c.box>=3).length}${s.lastScore!=null?`<br>Last quiz: ${s.lastScore}/${s.quiz.length}`:""}</div>
+  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Cards mastered: ${(s.cards||[]).filter(c=>c.box>=3).length}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
   $("#go").onclick=generate;
@@ -129,27 +131,46 @@ async function readPptx(buf){
   if(t.replace(/Slide \d+:/g,"").trim().length<50)throw new Error("No readable text found in these slides (text inside images isn't read).");
   return t;
 }
+async function extract(f){
+  if(!/\.(txt|md|pdf|pptx)$/i.test(f.name))throw new Error("only .txt, .md, .pdf and .pptx files are allowed.");
+  if(f.size>5*1024*1024)throw new Error("file is over 5 MB.");
+  if(/\.pdf$/i.test(f.name)){
+    const buf=await f.arrayBuffer();
+    if(new TextDecoder().decode(buf.slice(0,5))!=="%PDF-")throw new Error("not a valid PDF.");
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;let t="";
+    for(let i=1;i<=Math.min(pdf.numPages,60);i++)t+="Page "+i+": "+(await(await pdf.getPage(i)).getTextContent()).items.map(x=>x.str).join(" ")+"\n";
+    if(t.replace(/Page \d+:/g,"").trim().length<50)throw new Error("no readable text (scanned PDFs need OCR, which isn’t supported).");
+    return t;
+  }
+  if(/\.pptx$/i.test(f.name)){
+    const buf=await f.arrayBuffer();
+    if(new TextDecoder().decode(buf.slice(0,2))!=="PK")throw new Error("not a valid .pptx file.");
+    return readPptx(buf);
+  }
+  return f.text();
+}
+async function readFiles(files,st){
+  let out="";const list=[...files];
+  if(list.length>10)toast("Only the first 10 files will be used.");
+  for(const f of list.slice(0,10)){
+    st.textContent="Reading "+f.name+"…";
+    try{out+=`=== ${f.name} ===\n${await extract(f)}\n\n`}catch(e){toast(f.name+": "+e.message)}
+  }
+  return out.slice(0,200000);
+}
+function sample(text,limit=14000){
+  const parts=String(text).split(/^(?==== .+ ===$)/m).filter(x=>x.trim());
+  if(parts.length<2)return String(text).slice(0,limit);
+  const each=Math.floor(limit/parts.length);return parts.map(x=>x.slice(0,each)).join("\n");
+}
 async function readFile(){
-  const f=$("#file").files[0];if(!f)return;
-  const ok=/\.(txt|md|pdf|pptx)$/i.test(f.name);
-  if(!ok||f.size>5*1024*1024){toast(!ok?"Only .txt, .md, .pdf and .pptx files are allowed.":"File is over 5 MB.");$("#file").value="";return}
-  $("#st").textContent="Reading file…";
-  try{
-    let t="";
-    if(/\.pdf$/i.test(f.name)){
-      const buf=await f.arrayBuffer();
-      if(new TextDecoder().decode(buf.slice(0,5))!=="%PDF-")throw new Error("Not a valid PDF.");
-      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-      for(let i=1;i<=Math.min(pdf.numPages,60);i++){t+=(await(await pdf.getPage(i)).getTextContent()).items.map(x=>x.str).join(" ")+"\n"}
-      if(t.trim().length<50)throw new Error("No readable text found (scanned PDFs need OCR, which isn't supported).");
-    }else if(/\.pptx$/i.test(f.name)){
-      const buf=await f.arrayBuffer();
-      if(new TextDecoder().decode(buf.slice(0,2))!=="PK")throw new Error("Not a valid .pptx file.");
-      t=await readPptx(buf);
-    }else t=await f.text();
-    $("#txt").value=t.slice(0,200000);if(!$("#title").value)$("#title").value=f.name.replace(/\.\w+$/,"");
-    $("#st").textContent=`Loaded ${t.length.toLocaleString()} characters.`;
-  }catch(e){toast(e.message||"Could not read file");$("#st").textContent=""}
+  const fs=$("#file").files;if(!fs.length)return;
+  const t=await readFiles(fs,$("#st"));
+  if(!t.trim()){$("#file").value="";$("#st").textContent="";return}
+  $("#txt").value=($("#txt").value.trim()?$("#txt").value+"\n\n":"")+t;
+  const base=fs[0].name.replace(/\.\w+$/,"");
+  if(!$("#title").value)$("#title").value=fs.length>1?base+" + "+(fs.length-1)+" more":base;
+  $("#st").textContent=`Loaded ${$("#txt").value.length.toLocaleString()} characters from ${fs.length} file${fs.length>1?"s":""}.`;
 }
 async function ai(path,body){
   const r=await fetch(AI_URL+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+await user.getIdToken()},body:JSON.stringify(body)});
@@ -160,8 +181,8 @@ async function generate(){
   if(text.length<200)return toast("Please add at least a few paragraphs of notes (200+ characters).");
   const b=$("#go");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating… (10–30s)';
   try{
-    const g=await ai("/generate",{text:text.slice(0,14000)});
-    const data={title,created:Date.now(),text:text.slice(0,30000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null,visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
+    const g=await ai("/generate",{text:sample(text)});
+    const data={title,created:Date.now(),text:text.slice(0,60000),notes:g.notes,cards:(g.cards||[]).map(c=>({front:String(c.front),back:String(c.back),box:0})),quiz:g.quiz||[],lastScore:null,meta:{scores:[]},visuals:g.visuals&&typeof g.visuals==="object"?g.visuals:null,dialogues:g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null};
     const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="notes";study();
   }catch(e){toast(e.message);b.disabled=false;b.textContent="Generate study materials"}
 }
@@ -169,21 +190,22 @@ async function generate(){
 /* ---------- Study view ---------- */
 function study(){window.speechSynthesis&&speechSynthesis.cancel();
   app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2>
-  <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
+  <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),"source","add"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   $("#back").onclick=()=>home();
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
-  ({notes,visuals,cards,quiz,talk})[tab]($("#pane"));
+  ({notes,visuals,cards,quiz,talk,source,add:addTab})[tab]($("#pane"));
+  if(nav){const e=document.getElementById(nav);nav=null;if(e){e.classList.add("hl");e.scrollIntoView({block:"center",behavior:"smooth"})}}
 }
 const save=p=>setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code));
 
 function notes(p){
   const n=cur.notes||{};
   const sec=(c,h,b)=>`<div class="card sec" style="--c:${c}"><h3>${h}</h3>${b}</div>`;
-  const chips=(a,k,v)=>`<div class="grid">${(a||[]).map((x,i)=>`<div class="chip" style="--c:${COL[i%COL.length]}"><b>${esc(x[k])}</b><br>${esc(x[v])}</div>`).join("")}</div>`;
+  const chips=(a,k,v,pre)=>`<div class="grid">${(a||[]).map((x,i)=>`<div class="chip" id="${pre}${i}" style="--c:${COL[i%COL.length]}"><b>${esc(x[k])}</b><br>${esc(x[v])}</div>`).join("")}</div>`;
   p.innerHTML=sec("#5b4bdb","📝 Summary",`<p>${esc(n.summary)}</p>`)
    +sec("#0ea5e9","🗺️ Interactive concept map",'<div id="map"></div>')
-   +sec("#f59e0b","💡 Key concepts",chips(n.concepts,"term","explanation"))
-   +sec("#10b981","📖 Vocabulary",chips(n.vocab,"word","definition"))
+   +sec("#f59e0b","💡 Key concepts",chips(n.concepts,"term","explanation","c-"))
+   +sec("#10b981","📖 Vocabulary",chips(n.vocab,"word","definition","v-"))
    +sec("#ec4899","🔍 Examples",`<ul>${(n.examples||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`);
   const d=mapData(n);if(d.nodes.length>1)conceptMap($("#map"),d);else $("#map").parentElement.hidden=true;
 }
@@ -202,7 +224,7 @@ function mapData(n){
   return{nodes,links};
 }
 function conceptMap(el,d){
-  const W=700,H=460,N=d.nodes.slice(0,12),by=Object.fromEntries(N.map(n=>[n.id,n])),deg={};
+  const W=700,H=460,N=d.nodes.slice(0,14),by=Object.fromEntries(N.map(n=>[n.id,n])),deg={};
   N.forEach(n=>deg[n.id]=0);
   const L=(d.links||[]).filter(l=>by[l.from]&&by[l.to]&&l.from!==l.to).slice(0,30);
   L.forEach(l=>{deg[l.from]++;deg[l.to]++});
@@ -234,19 +256,92 @@ function cards(p){
   $("#yes").onclick=()=>nx(1);$("#no").onclick=()=>nx(-1)};draw();
 }
 
+const STOP=new Set("which what that this with from have been their there about would these those where when into than then also only does most each other such because while after before between".split(" "));
+const toks=t=>new Set((String(t).toLowerCase().match(/[a-z0-9\u00c0-\u024f]{4,}/g)||[]).filter(w=>!STOP.has(w)));
+function passages(text){
+  const out=[],cnt={};let src="Pasted notes";
+  const chunk=(t,loc)=>{let c="";for(const x of (t.match(/[^.!?]+[.!?]*\s*/g)||[t])){if(c&&(c+x).length>500){out.push({src,loc,text:c.trim()});c=x}else c+=x}if(c.trim())out.push({src,loc,text:c.trim()})};
+  for(const line of String(text).split("\n")){
+    const h=line.match(/^=== (.+) ===$/);if(h){src=h[1];continue}
+    const t=line.trim();if(!t)continue;
+    const m=t.match(/^(Slide|Page) (\d+): ?(.*)$/);
+    if(m){if(m[3])chunk(m[3],m[1]+" "+m[2])}else{cnt[src]=(cnt[src]||0)+1;chunk(t,"Section "+cnt[src])}
+  }
+  return out;
+}
+function locate(q){
+  const want=toks(q.q+" "+q.options[q.answer]+" "+(q.explain||"")),P=passages(cur.text||"");
+  let best=null,bs=0;
+  P.forEach((p,i)=>{const t=toks(p.text);let sc=0;want.forEach(w=>t.has(w)&&sc++);if(sc>bs){bs=sc;best={...p,i}}});
+  return bs>=2?best:null;
+}
+function concept(q){
+  const want=toks(q.q+" "+q.options[q.answer]+" "+(q.explain||""));let best=-1,bs=1;
+  (cur.notes?.concepts||[]).forEach((c,i)=>{const t=toks(c.term+" "+c.explanation);let sc=0;want.forEach(w=>t.has(w)&&sc++);if(sc>bs){bs=sc;best=i}});
+  return best;
+}
 function quiz(p){
   const qs=cur.quiz||[];if(!qs.length)return p.innerHTML="<p>No questions.</p>";
-  let i=0,score=0;
+  let i=0,score=0,missed=[];
+  const result=()=>{
+    const pct=Math.round(100*score/qs.length),sc=[...(cur.meta?.scores||[]),{at:Date.now(),pct}].slice(-20);
+    cur.meta={...(cur.meta||{}),scores:sc};cur.lastScore=score;save({lastScore:score,meta:cur.meta});
+    const rev=missed.map(q=>{const loc=locate(q),ci=concept(q);
+      return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">Correct answer: ${esc(q.options[q.answer])}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
+    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${score} of ${qs.length} correct</p><div class="bar"><i style="width:${pct}%"></i></div>${sc.length>1?`<p class="mute">Earlier attempts: ${sc.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button></div>${missed.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    $("#re").onclick=()=>{i=0;score=0;missed=[];draw()};
+    p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
+    p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{nav="c-"+b.dataset.c;tab="notes";study()});
+  };
   const draw=()=>{
-    if(i>=qs.length){save({lastScore:score});cur.lastScore=score;
-      return p.innerHTML=`<div class="card hero"><h2>${score/qs.length>=.8?"🏆":score/qs.length>=.5?"👏":"💪"} ${score}/${qs.length}</h2><div class="bar"><i style="width:${Math.round(100*score/qs.length)}%"></i></div><button id="re">Retake</button></div>`,$("#re").onclick=()=>{i=0;score=0;draw()}}
+    if(i>=qs.length)return result();
     const q=qs[i];p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}</p><div class="card"><b>${esc(q.q)}</b>
     ${q.options.map((o,k)=>`<button class="alt opt" data-k="${k}">${esc(o)}</button>`).join("")}<p id="ex" class="mute"></p></div>`;
     p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
-      const k=+b.dataset.k;if(k===q.answer)score++;
+      const k=+b.dataset.k;if(k===q.answer)score++;else missed.push(q);
       p.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===q.answer)x.classList.add("right");else if(j===k)x.classList.add("wrong")});
       $("#ex").innerHTML=esc(q.explain)+'<br><br><button id="nx">Next</button>';$("#nx").onclick=()=>{i++;draw()}});
   };draw();
+}
+function source(p){
+  const P=passages(cur.text||"");let last=null;
+  p.innerHTML=`<p class="mute">Your original notes, grouped by file. Quiz review links jump to the matching passage here.</p>`+(P.map((x,i)=>`${(x.src!==last&&(last=x.src))?`<h3>📄 ${esc(x.src)}</h3>`:""}<div class="pas" id="p-${i}"><span class="loc">${esc(x.loc)}</span>${esc(x.text)}</div>`).join("")||'<p class="mute">No saved notes text.</p>');
+}
+function mergeDiagram(a,b){
+  const ok=d=>d&&Array.isArray(d.nodes)&&d.nodes.length>1;
+  if(!ok(b))return a||null;if(!ok(a))return b;
+  const nb=b.nodes.slice(0,5),keep=new Set(nb.map(x=>x.id)),px=x=>"m_"+x;
+  return{nodes:[...a.nodes,...nb.map(x=>({...x,id:px(x.id)}))],links:[...(a.links||[]),...(b.links||[]).filter(l=>keep.has(l.from)&&keep.has(l.to)).map(l=>({...l,from:px(l.from),to:px(l.to)})),{from:a.nodes[0].id,to:px(nb[0].id),label:"also covers"}]};
+}
+function mergeInto(c,g,text){
+  const n=c.notes||{},m=g.notes||{},cat=k=>[...(n[k]||[]),...(m[k]||[])];
+  c.notes={...n,summary:[n.summary,m.summary].filter(Boolean).join("\n\n"),concepts:cat("concepts"),vocab:cat("vocab"),examples:cat("examples"),diagram:mergeDiagram(n.diagram,m.diagram)};
+  const seen=new Set((c.quiz||[]).map(q=>String(q.q).toLowerCase()));
+  c.quiz=[...(c.quiz||[]),...(g.quiz||[]).filter(q=>!seen.has(String(q.q).toLowerCase()))];
+  const have=new Set((c.cards||[]).map(x=>String(x.front).toLowerCase()));
+  c.cards=[...(c.cards||[]),...(g.cards||[]).filter(x=>!have.has(String(x.front).toLowerCase())).map(x=>({front:String(x.front),back:String(x.back),box:0}))];
+  const v=c.visuals||{},w=g.visuals||{};
+  c.visuals={steps:v.steps||w.steps||null,compare:v.compare||w.compare||null,timeline:v.timeline||w.timeline||null,images:[...(v.images||[]),...(w.images||[])],resolved:false};
+  const d=c.dialogues,e=g.dialogues&&Array.isArray(g.dialogues.items)&&g.dialogues.items.length?g.dialogues:null;
+  c.dialogues=d&&e&&d.lang===e.lang?{...d,items:[...d.items,...e.items].slice(0,6)}:(d||e||null);
+  c.text=((c.text||"")+"\n\n"+(text.startsWith("===")?"":"=== Added "+new Date().toLocaleDateString()+" ===\n")+text).slice(0,60000);
+}
+function addTab(p){
+  p.innerHTML=`<div class="card hero"><h3>➕ Add more notes to this set</h3><p class="mute">Upload more files or paste more text. New flashcards, quiz questions, concepts and vocabulary are added to this set. Nothing is removed.</p>
+  <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.pptx"> <span class="mute">up to 10 files, 5 MB each</span></p>
+  <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span></p></div>`;
+  $("#afile").onchange=async()=>{const fs=$("#afile").files;if(!fs.length)return;const t=await readFiles(fs,$("#ast"));
+    $("#atxt").value=($("#atxt").value.trim()?$("#atxt").value+"\n\n":"")+t;$("#ast").textContent=`Loaded ${$("#atxt").value.length.toLocaleString()} characters.`;$("#afile").value=""};
+  $("#ago").onclick=async()=>{
+    const text=$("#atxt").value.trim();if(text.length<200)return toast("Add at least a few paragraphs (200+ characters).");
+    const b=$("#ago");b.disabled=true;b.innerHTML='<span class="spin"></span>Adding… (10–30s)';
+    try{
+      const c0=(cur.cards||[]).length,q0=(cur.quiz||[]).length;
+      mergeInto(cur,await ai("/generate",{text:sample(text)}),text);
+      await setDoc(doc(setsCol(),cur.id),{text:cur.text,notes:cur.notes,cards:cur.cards,quiz:cur.quiz,visuals:cur.visuals,dialogues:cur.dialogues},{merge:true});
+      toast(`Added ${cur.cards.length-c0} flashcards and ${cur.quiz.length-q0} questions.`);tab="notes";study();
+    }catch(e){toast(e.message);b.disabled=false;b.textContent="Add to set"}
+  };
 }
 
 /* ---------- Visuals & conversations ---------- */
@@ -274,8 +369,9 @@ async function visuals(p){
   p.innerHTML=html+sec("#ec4899","🖼️ Images",'<div id="imgs" class="mute">Looking for images…</div>');
   let imgs=v.images||[];
   if(!v.resolved){
-    const qs=imgs.length?imgs:(n.concepts||[]).slice(0,4).map(x=>({query:x.term,caption:x.term}));
-    imgs=(await Promise.all(qs.slice(0,5).map(async q=>{const f=await findImage(String(q.query));return f&&{...f,caption:String(q.caption||q.query)}}))).filter(Boolean);
+    const have=imgs.filter(x=>x.src),qs=imgs.length?imgs.filter(x=>!x.src):(n.concepts||[]).slice(0,4).map(x=>({query:x.term,caption:x.term}));
+    const got=(await Promise.all(qs.slice(0,5).map(async q=>{const f=await findImage(String(q.query));return f&&{...f,caption:String(q.caption||q.query)}}))).filter(Boolean);
+    imgs=[...have,...got].slice(0,10);
     cur.visuals={...v,images:imgs,resolved:true};save({visuals:cur.visuals});
   }
   const box=$("#imgs");if(!box)return;
@@ -330,7 +426,7 @@ $("#q").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#se
 $("#send").onclick=async()=>{
   const q=$("#q").value.trim();if(!q)return;const h=hist();h.push({role:"user",content:q});$("#q").value="";chatDraw();
   const b=$("#send");b.disabled=true;b.innerHTML='<span class="spin"></span>';
-  try{const r=await ai("/chat",{messages:h.slice(-10),context:(cur?.text||"").slice(0,6000),selection:picked});h.push({role:"assistant",content:r.reply});picked="";chip()}
+  try{const r=await ai("/chat",{messages:h.slice(-10),context:sample(cur?.text||"",6000),selection:picked});h.push({role:"assistant",content:r.reply});picked="";chip()}
   catch(e){h.pop();toast(e.message)}
   b.disabled=false;b.textContent="Send";chatDraw();
 };
