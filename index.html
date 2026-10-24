@@ -91,6 +91,14 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 :root[data-bg=stars] body::before{inset:0;background-image:radial-gradient(1.6px 1.6px at 12% 18%,var(--ink),transparent),radial-gradient(1px 1px at 28% 72%,var(--ink),transparent),radial-gradient(1.6px 1.6px at 47% 35%,var(--ink),transparent),radial-gradient(1px 1px at 63% 82%,var(--ink),transparent),radial-gradient(1.6px 1.6px at 78% 22%,var(--ink),transparent),radial-gradient(1px 1px at 90% 58%,var(--ink),transparent),radial-gradient(1px 1px at 8% 88%,var(--ink),transparent),radial-gradient(1.4px 1.4px at 38% 8%,var(--ink),transparent),radial-gradient(1px 1px at 70% 48%,var(--ink),transparent);animation:twinkle 3.5s ease-in-out infinite alternate;opacity:.6}
 :root[data-font=rounded] body{font-family:ui-rounded,"SF Pro Rounded","Nunito","Varela Round","Segoe UI",system-ui,sans-serif}
 :root[data-font=serif] body{font-family:Georgia,"Times New Roman",serif}
+@font-face{font-family:"OpenDyslexic";src:url(https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic@5.3.0/files/opendyslexic-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"OpenDyslexic";src:url(https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic@5.3.0/files/opendyslexic-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+:root[data-font=dyslexic] body{font-family:"OpenDyslexic","Comic Sans MS","Lexend",sans-serif;letter-spacing:.04em;word-spacing:.12em;line-height:1.75}
+:root[data-font=hyper] body{font-family:"Atkinson Hyperlegible",system-ui,sans-serif;letter-spacing:.01em;line-height:1.6}
+:root[data-size=large]{font-size:112.5%}:root[data-size=large] body{font-size:18px}
+:root[data-size=xl]{font-size:125%}:root[data-size=xl] body{font-size:20px}
 </style>
 </head>
 <body>
@@ -128,14 +136,14 @@ const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.b
 const COL=["#5b4bdb","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0ea5e9","Process"],example:["#10b981","Example"],term:["#f59e0b","Term"]};
 const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#84cc16","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]},lavender:{n:"Lavender",b:["#7c3aed","#c4b5fd"],g:["#7c3aed","#a78bfa","#f0abfc"]},mint:{n:"Mint",b:["#0f766e","#5eead4"],g:["#0f766e","#34d399","#38bdf8"]},rose:{n:"Rose",b:["#be123c","#fda4af"],g:["#e11d48","#fb7185","#f59e0b"]},midnight:{n:"Midnight",b:["#1d4ed8","#93c5fd"],g:["#0f172a","#1e3a8a","#7c3aed"]},neon:{n:"Neon",b:["#0891b2","#22d3ee"],g:["#06b6d4","#d946ef","#84cc16"]},coffee:{n:"Coffee",b:["#92400e","#fbbf24"],g:["#78350f","#b45309","#d97706"]},candy:{n:"Candy",b:["#db2777","#f9a8d4"],g:["#ec4899","#22d3ee","#fde047"]},arctic:{n:"Arctic",b:["#0284c7","#7dd3fc"],g:["#0284c7","#67e8f9","#a5b4fc"]}};
-const DEF={theme:"auto",palette:"aurora",bg:"glow",font:"system",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
+const DEF={theme:"auto",palette:"aurora",bg:"glow",font:"system",size:"normal",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
 let S={...DEF,types:{...DEF.types}};
 try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})}}}catch(e){}
 const animOK=()=>S.anim==="full"||(S.anim==="auto"&&!matchMedia("(prefers-reduced-motion:reduce)").matches);
 function applySettings(){
   const r=document.documentElement,dark=S.theme==="dark"||(S.theme==="auto"&&matchMedia("(prefers-color-scheme:dark)").matches),P=PALETTES[S.palette]||PALETTES.aurora;
   if(S.theme==="auto")r.removeAttribute("data-theme");else r.dataset.theme=S.theme;
-  r.dataset.anim=S.anim;r.dataset.bg=S.bg;r.dataset.font=S.font;r.style.setProperty("--brand",P.b[dark?1:0]);P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
+  r.dataset.anim=S.anim;r.dataset.bg=S.bg;r.dataset.font=S.font;r.dataset.size=S.size;r.style.setProperty("--brand",P.b[dark?1:0]);P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
   const b=$("#snd");if(b)b.textContent=S.sound?"🔊 Sound on":"🔇 Sound off";
 }
 let ptimer;
@@ -158,7 +166,8 @@ function openSettings(){
   <h3>🎨 Appearance</h3><div class="row"><span>Theme</span>${seg("theme",[["auto","Auto"],["light","☀️ Light"],["dark","🌙 Dark"]])}</div>
   <div class="row"><span>Colours</span><div class="seg">${Object.entries(PALETTES).map(([id,p])=>`<button class="sw ${S.palette===id?"on":""}" title="${p.n}" data-pal="${id}" style="background:linear-gradient(135deg,${p.g[0]},${p.g[1]},${p.g[2]})"></button>`).join("")}</div></div>
   <div class="row"><span>Background</span>${seg("bg",[["glow","✨ Glow"],["aurora","🌌 Aurora"],["stars","⭐ Stars"],["dots","⚪ Dots"],["plain","▫️ Plain"]])}</div>
-  <div class="row"><span>Font</span>${seg("font",[["system","Standard"],["rounded","Rounded"],["serif","Serif"]])}</div>
+  <div class="row"><span>Font</span>${seg("font",[["system","Standard"],["rounded","Rounded"],["serif","Serif"],["dyslexic","Dyslexia-friendly"],["hyper","Hyperlegible"]])}</div>
+  <div class="row"><span>Text size</span>${seg("size",[["normal","Normal"],["large","Large"],["xl","Extra large"]])}</div>
   <h3>🔊 Sound</h3>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
   <h3>✨ Animations</h3><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
