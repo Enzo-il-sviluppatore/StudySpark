@@ -50,7 +50,7 @@ header{background:linear-gradient(90deg,#5b4bdb,#0ea5e9);border:0}header h1{colo
 @keyframes pulse{50%{transform:scale(1.04)}}@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 @keyframes ring{0%{box-shadow:0 0 0 0 #ec489988}100%{box-shadow:0 0 0 18px #ec489900}}@keyframes up{from{opacity:0;transform:translate(-50%,20px)}}
 @keyframes bounce{40%{transform:translateY(-8px) rotate(-8deg)}70%{transform:translateY(0) rotate(6deg)}}@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.8}}
-body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 20% 20%,#5b4bdb26,transparent 40%),radial-gradient(circle at 80% 30%,#ec489922,transparent 40%),radial-gradient(circle at 50% 90%,#0ea5e922,transparent 40%);animation:drift 18s ease-in-out infinite alternate}
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 20% 20%,color-mix(in srgb,var(--g1,#5b4bdb) 16%,transparent),transparent 40%),radial-gradient(circle at 80% 30%,color-mix(in srgb,var(--g3,#ec4899) 14%,transparent),transparent 40%),radial-gradient(circle at 50% 90%,color-mix(in srgb,var(--g2,#0ea5e9) 14%,transparent),transparent 40%);animation:drift 18s ease-in-out infinite alternate}
 header{background:linear-gradient(90deg,var(--g1,#5b4bdb),var(--g2,#0ea5e9),var(--g3,#ec4899),var(--g1,#5b4bdb));background-size:300% 100%;animation:flowbg 14s linear infinite}
 h1{display:inline-block;transition:transform .3s}h1:hover{transform:rotate(-4deg) scale(1.06)}
 .card{animation:pop .4s ease both;transition:transform .2s,box-shadow .2s}.set:hover,.chip:hover{transform:translateY(-4px);box-shadow:0 8px 22px #0002}
@@ -58,7 +58,6 @@ h1{display:inline-block;transition:transform .3s}h1:hover{transform:rotate(-4deg
 button{transition:transform .12s,filter .15s}button:hover:not(:disabled){filter:brightness(1.12)}button:active:not(:disabled){transform:scale(.94)}
 .fc{animation:flip .35s ease both;user-select:none}.opt.right{animation:pulse .5s}.opt.wrong{animation:shake .4s}
 .msg{animation:pop .25s ease both}#chat{animation:pop .25s ease both}#fab{animation:ring 2.4s infinite}#fab:hover{transform:scale(1.1) rotate(8deg)}#toast{animation:up .25s ease}
-#snd{padding:4px 10px;margin-right:8px}
 .conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}.conf i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
 @media(prefers-reduced-motion:reduce){:root[data-anim=auto] *,:root[data-anim=auto] *::before{animation:none!important;transition:none!important}}
 :root[data-anim=off] *,:root[data-anim=off] *::before{animation:none!important;transition:none!important}
@@ -71,11 +70,33 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
 .optw{margin:6px 0}.optw .opt{margin:0}.opt.sel{background:var(--brand);color:#fff}.opt.miss{outline:3px solid #f59e0b}
 .why{font-size:.88rem;margin:3px 0 0 10px;color:var(--mute)}.why.g{color:var(--ok)}.why.b{color:var(--bad)}
 .spark{display:flex;align-items:flex-end;gap:6px;height:100px;margin:8px 0}.spark div{flex:1;min-width:14px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--g2,#0ea5e9),var(--g1,#5b4bdb));text-align:center;font-size:.7rem;color:#fff;animation:pop .4s ease both}
+#shell{display:flex;align-items:flex-start}#shell main{flex:1;min-width:0}
+#side{width:250px;flex:none;position:sticky;top:var(--hh,57px);height:calc(100vh - var(--hh,57px));overflow:auto;padding:12px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px;animation:slidein .4s ease both}
+#snav{flex:1;display:flex;flex-direction:column;gap:3px}#sfoot{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line);padding-top:10px;margin-top:8px}
+.sl{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;color:var(--ink);padding:8px 10px;border-radius:10px;border:0;animation:slidein .35s ease both}
+.sl:hover{background:color-mix(in srgb,var(--brand) 13%,transparent);transform:translateX(3px);filter:none}.sl.on{background:var(--brand);color:#fff}.sl small{margin-left:auto;opacity:.85}
+.sh{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:12px 4px 2px}
+.tip{border-radius:12px;padding:10px;background:color-mix(in srgb,#f59e0b 16%,transparent);font-size:.84rem;margin-bottom:4px;animation:pop .35s ease both}
+#menu{display:none}#scrim{position:fixed;inset:0;background:#0007;z-index:24;display:none}#scrim.on{display:block}
+@media(min-width:801px){#app .tabs{display:none}}
+@media(max-width:800px){#menu{display:inline-block}#side{position:fixed;left:0;top:var(--hh,57px);z-index:25;width:min(300px,85vw);transform:translateX(-105%);transition:transform .25s;box-shadow:0 0 30px #0006}#side.open{transform:none}}
+@keyframes slidein{from{opacity:0;transform:translateX(-16px)}}@keyframes floaty{50%{transform:translateY(-4px)}}@keyframes grow{from{width:0}}@keyframes twinkle{from{opacity:.25}to{opacity:.85}}@keyframes bob{50%{transform:translateY(-5px)}}@keyframes glowtxt{to{text-shadow:0 0 14px #fff9}}
+@keyframes swr{to{transform:translateX(120%) rotate(12deg);opacity:0}}@keyframes swl{to{transform:translateX(-120%) rotate(-12deg);opacity:0}}
+h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block;animation:floaty 4s ease-in-out infinite}.bar i{animation:grow .9s ease both}
+.fc.swr{animation:swr .22s ease-in forwards}.fc.swl{animation:swl .22s ease-in forwards}
+.typing{display:flex;gap:4px;width:62px}.typing i{width:8px;height:8px;border-radius:50%;background:var(--mute);animation:bob 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+:root[data-bg=plain] body::before{display:none}
+:root[data-bg=dots] body::before{inset:0;background:radial-gradient(var(--line) 1.3px,transparent 1.4px) 0 0/22px 22px;animation:none;opacity:.9}
+:root[data-bg=aurora] body::before{inset:-30%;background:radial-gradient(circle at 25% 30%,color-mix(in srgb,var(--g1,#5b4bdb) 38%,transparent),transparent 45%),radial-gradient(circle at 75% 25%,color-mix(in srgb,var(--g2,#0ea5e9) 32%,transparent),transparent 45%),radial-gradient(circle at 55% 80%,color-mix(in srgb,var(--g3,#ec4899) 32%,transparent),transparent 45%);animation:drift 9s ease-in-out infinite alternate;filter:blur(24px);opacity:.55}
+:root[data-bg=stars] body::before{inset:0;background-image:radial-gradient(1.6px 1.6px at 12% 18%,var(--ink),transparent),radial-gradient(1px 1px at 28% 72%,var(--ink),transparent),radial-gradient(1.6px 1.6px at 47% 35%,var(--ink),transparent),radial-gradient(1px 1px at 63% 82%,var(--ink),transparent),radial-gradient(1.6px 1.6px at 78% 22%,var(--ink),transparent),radial-gradient(1px 1px at 90% 58%,var(--ink),transparent),radial-gradient(1px 1px at 8% 88%,var(--ink),transparent),radial-gradient(1.4px 1.4px at 38% 8%,var(--ink),transparent),radial-gradient(1px 1px at 70% 48%,var(--ink),transparent);animation:twinkle 3.5s ease-in-out infinite alternate;opacity:.6}
+:root[data-font=rounded] body{font-family:ui-rounded,"SF Pro Rounded","Nunito","Varela Round","Segoe UI",system-ui,sans-serif}
+:root[data-font=serif] body{font-family:Georgia,"Times New Roman",serif}
 </style>
 </head>
 <body>
-<header><h1>⚡ StudySpark</h1><div style="display:flex;align-items:center"><button class="alt" id="gear" title="Settings">⚙️</button><button class="alt" id="snd" title="Sound on/off">🔊</button><div id="auth"></div></div></header>
-<main id="app"></main>
+<header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
+<div id="shell"><aside id="side"><nav id="snav"></nav><div id="sfoot"><div class="tip" id="tip"></div><button class="sl" id="tipn">🔄 Next tip</button><button class="sl" id="tips">📖 All study tips</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app"></main></div>
+<div id="scrim"></div>
 <button id="fab" title="AI study tutor" hidden>🤖</button>
 <div id="chat" hidden><div class="ch"><span>🤖 AI study tutor <small class="qleft" data-p="/chat" style="font-weight:400;opacity:.9"></small></span><button class="alt" id="cx">✕</button></div><div id="log"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
 <button id="ask" hidden>🤖 Ask AI</button>
@@ -106,16 +127,16 @@ const hue=s=>`hsl(${hash(s)%360} 70% 52%)`,icon=s=>["🧬","📐","🌍","⚗️
 const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.box>=3).length/c.length):0};
 const COL=["#5b4bdb","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0ea5e9","Process"],example:["#10b981","Example"],term:["#f59e0b","Term"]};
-const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#84cc16","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]}};
-const DEF={theme:"auto",palette:"aurora",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
+const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#84cc16","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]},lavender:{n:"Lavender",b:["#7c3aed","#c4b5fd"],g:["#7c3aed","#a78bfa","#f0abfc"]},mint:{n:"Mint",b:["#0f766e","#5eead4"],g:["#0f766e","#34d399","#38bdf8"]},rose:{n:"Rose",b:["#be123c","#fda4af"],g:["#e11d48","#fb7185","#f59e0b"]},midnight:{n:"Midnight",b:["#1d4ed8","#93c5fd"],g:["#0f172a","#1e3a8a","#7c3aed"]},neon:{n:"Neon",b:["#0891b2","#22d3ee"],g:["#06b6d4","#d946ef","#84cc16"]},coffee:{n:"Coffee",b:["#92400e","#fbbf24"],g:["#78350f","#b45309","#d97706"]},candy:{n:"Candy",b:["#db2777","#f9a8d4"],g:["#ec4899","#22d3ee","#fde047"]},arctic:{n:"Arctic",b:["#0284c7","#7dd3fc"],g:["#0284c7","#67e8f9","#a5b4fc"]}};
+const DEF={theme:"auto",palette:"aurora",bg:"glow",font:"system",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
 let S={...DEF,types:{...DEF.types}};
 try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})}}}catch(e){}
 const animOK=()=>S.anim==="full"||(S.anim==="auto"&&!matchMedia("(prefers-reduced-motion:reduce)").matches);
 function applySettings(){
   const r=document.documentElement,dark=S.theme==="dark"||(S.theme==="auto"&&matchMedia("(prefers-color-scheme:dark)").matches),P=PALETTES[S.palette]||PALETTES.aurora;
   if(S.theme==="auto")r.removeAttribute("data-theme");else r.dataset.theme=S.theme;
-  r.dataset.anim=S.anim;r.style.setProperty("--brand",P.b[dark?1:0]);P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
-  const b=$("#snd");if(b)b.textContent=S.sound?"🔊":"🔇";
+  r.dataset.anim=S.anim;r.dataset.bg=S.bg;r.dataset.font=S.font;r.style.setProperty("--brand",P.b[dark?1:0]);P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
+  const b=$("#snd");if(b)b.textContent=S.sound?"🔊 Sound on":"🔇 Sound off";
 }
 let ptimer;
 function persist(){
@@ -136,6 +157,8 @@ function openSettings(){
   const draw=()=>{m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⚙️ Settings</h2><button class="alt" id="sx">✕</button></div>
   <h3>🎨 Appearance</h3><div class="row"><span>Theme</span>${seg("theme",[["auto","Auto"],["light","☀️ Light"],["dark","🌙 Dark"]])}</div>
   <div class="row"><span>Colours</span><div class="seg">${Object.entries(PALETTES).map(([id,p])=>`<button class="sw ${S.palette===id?"on":""}" title="${p.n}" data-pal="${id}" style="background:linear-gradient(135deg,${p.g[0]},${p.g[1]},${p.g[2]})"></button>`).join("")}</div></div>
+  <div class="row"><span>Background</span>${seg("bg",[["glow","✨ Glow"],["aurora","🌌 Aurora"],["stars","⭐ Stars"],["dots","⚪ Dots"],["plain","▫️ Plain"]])}</div>
+  <div class="row"><span>Font</span>${seg("font",[["system","Standard"],["rounded","Rounded"],["serif","Serif"]])}</div>
   <h3>🔊 Sound</h3>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
   <h3>✨ Animations</h3><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
@@ -209,7 +232,7 @@ $("#auth").onclick=async e=>{
   if(e.target.id==="out")signOut(auth);
 };
 onAuthStateChanged(auth,async u=>{
-  user=u;cur=null;$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
+  user=u;cur=null;renderSide();$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account.</p></div>`;return}
   await loadPrefs(u);loadUsage();await loadSets();home();
@@ -221,7 +244,7 @@ async function loadSets(){
 }
 
 /* ---------- Library / upload ---------- */
-function home(){window.speechSynthesis&&speechSynthesis.cancel();
+function home(){window.speechSynthesis&&speechSynthesis.cancel();cur=null;renderSide();
   app.innerHTML=`<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
@@ -320,7 +343,7 @@ async function generate(){
 }
 
 /* ---------- Study view ---------- */
-function study(){window.speechSynthesis&&speechSynthesis.cancel();
+function study(){window.speechSynthesis&&speechSynthesis.cancel();renderSide();
   app.innerHTML=`<p><button class="alt" id="back">← Library</button></p><h2>${esc(cur.title)}</h2><p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
   <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),"progress","source","add"].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   $("#back").onclick=()=>home();
@@ -401,10 +424,11 @@ function cards(p){
     const t=all.map(c=>[c.front,c.back].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=(cur.title||"flashcards").replace(/[^\w-]+/g,"_")+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   };
+  const swipe=cls=>{const el=$("#fc");if(el&&animOK()){$("#yes").disabled=true;$("#no").disabled=true;el.classList.add(cls);setTimeout(draw,230)}else draw()};
   const draw=()=>{
     if(!queue.length){
       const next=all.map(c=>c.due).filter(d=>d>Date.now()).sort((a,b)=>a-b)[0];
-      p.innerHTML=`<div class="card hero"><h2>🎉 All caught up!</h2><p>${total?`You reviewed ${total} card${total>1?"s":""}.`:"No cards are due right now."}</p>${next?`<p class="mute">Next review: ${esc(new Date(next).toLocaleString())}</p>`:""}<button id="all">Study all cards anyway</button> <button class="alt" id="csv">⬇️ Export CSV</button></div>`;
+      p.innerHTML=`<div class="card hero"><h2>🎉 All caught up!</h2><p>${total?`You reviewed ${total} card${total>1?"s":""}.`:"No cards are due right now."}</p>${next?`<p class="mute">Next review: ${esc(new Date(next).toLocaleString())}</p>`:""}${tipHtml("space")}<button id="all">Study all cards anyway</button> <button class="alt" id="csv">⬇️ Export CSV</button></div>`;
       $("#all").onclick=()=>{begin(true);flip=false;draw()};$("#csv").onclick=csv;return;
     }
     const c=all[queue[0]];
@@ -412,8 +436,8 @@ function cards(p){
     <div class="card fc ${flip?"back":""}" id="fc">${esc(flip?c.back:c.front)}</div><p class="mute">Tap the card to flip. “Got it” spaces it further out; “Still learning” brings it back soon.</p>
     <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>`;
     $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};$("#csv").onclick=csv;
-    $("#yes").onclick=()=>{sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+interval(c.box);queue.shift();flip=false;save({cards:all});draw()};
-    $("#no").onclick=()=>{c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});draw()};
+    $("#yes").onclick=()=>{sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+interval(c.box);queue.shift();flip=false;save({cards:all});swipe("swr")};
+    $("#no").onclick=()=>{c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});swipe("swl")};
   };
   begin(false);draw();
 }
@@ -467,7 +491,8 @@ function quiz(p){
     const pct=Math.round(100*sc/total);
     const rev=mq.map(q=>{const loc=locate(q),ci=concept(q);
       return `<div class="card sec" style="--c:#ef4444"><b>${esc(q.q)}</b><br><span class="mute">${q.type==="written"?"Model answer":"Correct answer"}: ${esc(ans(q))}</span><p>${loc?`<button class="alt" data-p="${loc.i}">📄 ${esc(loc.src)}${loc.loc?" · "+esc(loc.loc):""}</button> `:""}${ci>=0?`<button class="alt" data-c="${ci}">📖 Key concept: ${esc(cur.notes.concepts[ci].term)}</button>`:""}${!loc&&ci<0?'<span class="mute">No exact match found. Review the Study notes tab.</span>':""}</p>${loc?`<p class="mute">“…${esc(loc.text.slice(0,160))}…”</p>`:""}</div>`}).join("");
-    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} ${pct}%</h2><p>${Math.round(sc*10)/10} of ${total} points</p><div class="bar"><i style="width:${pct}%"></i></div>${at?`<p class="mute">Taken ${esc(new Date(at).toLocaleString())}</p>`:""}${hist.length>1?`<p class="mute">Earlier attempts: ${hist.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}<button id="re">Retake</button>${mq.length?' <button class="alt" id="pm">🎯 Practice only what I missed</button>':""}</div>${mq.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    p.innerHTML=`<div class="card hero"><h2>${pct>=80?"🏆":pct>=50?"👏":"💪"} <span id="pctn">${pct}%</span></h2><p>${Math.round(sc*10)/10} of ${total} points</p><div class="bar"><i style="width:${pct}%"></i></div>${at?`<p class="mute">Taken ${esc(new Date(at).toLocaleString())}</p>`:""}${hist.length>1?`<p class="mute">Earlier attempts: ${hist.slice(-6,-1).map(x=>x.pct+"%").join(", ")}</p>`:""}${tipHtml(pct<80?"mistakes":"space")}<button id="re">Retake</button>${mq.length?' <button class="alt" id="pm">🎯 Practice only what I missed</button>':""}</div>${mq.length?"<h3>📚 Where to study further</h3>"+rev:"<p>🎉 Perfect score!</p>"}`;
+    countUp($("#pctn"),pct);
     $("#re").onclick=()=>{cur.meta={...(cur.meta||{}),last:null};save({meta:cur.meta});start()};
     if($("#pm"))$("#pm").onclick=()=>{cur.meta={...(cur.meta||{}),last:null};save({meta:cur.meta});start(mq.map(q=>q._i))};
     p.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{nav="p-"+b.dataset.p;tab="source";study()});
@@ -637,7 +662,59 @@ function talk(p){
   };draw();
 }
 
-const chats={};let picked="";
+const TIPS=[
+ {k:"recall",t:"Test yourself, don’t just reread",d:"Trying to recall answers from memory (flashcards, quizzes) builds stronger memory than rereading or highlighting."},
+ {k:"space",t:"Space it out",d:"Short sessions spread over several days beat one long cram session. Review a little each day."},
+ {k:"mix",t:"Mix topics",d:"Switching between topics or question types while you practise helps you tell ideas apart and remember them longer."},
+ {k:"explain",t:"Explain it in your own words",d:"Pretend to teach a friend, or say it out loud. Where you get stuck is what to study next."},
+ {k:"pomo",t:"Work in focused blocks",d:"Try 25 minutes of focus, then a 5-minute break. After four rounds, take a longer break."},
+ {k:"sleep",t:"Sleep is part of studying",d:"Your brain files new memories while you sleep. A good night before a test usually beats a late-night cram."},
+ {k:"hard",t:"Start with the hard stuff",d:"Do the topic you know least first, while your energy is highest. Save easy reviews for later."},
+ {k:"plan",t:"Set a learn-by date",d:"A deadline and a small daily goal make studying easier to start. Use the Progress tab to set one."},
+ {k:"phone",t:"Put your phone out of reach",d:"Even a face-down phone nearby can pull your attention. Mute notifications while you study."},
+ {k:"elab",t:"Connect new ideas to what you know",d:"Ask “why does this work?” and add your own examples. Connections make facts stick."},
+ {k:"mistakes",t:"Learn from your mistakes",d:"For each wrong answer, work out why it was wrong. Then retry only the ones you missed."},
+ {k:"draw",t:"Draw it from memory",d:"Sketch a diagram or concept map without looking, then compare it with your notes."},
+ {k:"flip",t:"Answer before you flip",d:"With flashcards, commit to an answer first. Guessing, even wrongly, helps you remember the real answer."},
+ {k:"hint",t:"Ask the tutor for hints",d:"Struggling a little before you get help helps learning. Ask for a hint or a guiding question first."},
+ {k:"highlight",t:"Highlight less",d:"Highlighting everything doesn’t help much. Mark only key terms, then quiz yourself on them."},
+ {k:"move",t:"Move your body",d:"A short walk or stretch can help you refocus. Take one between study blocks."},
+ {k:"exam",t:"Practise like the real thing",d:"Do practice questions without peeking at your notes, and sometimes against a timer, to prepare for test conditions."},
+ {k:"speak",t:"Speak the language out loud",d:"For language study, read dialogues aloud and answer in practice mode. Speaking helps recall more than reading."}];
+const tipHtml=k=>{const t=TIPS.find(x=>x.k===k);return t?`<p class="mute">💡 <b>${esc(t.t)}.</b> ${esc(t.d)}</p>`:""};
+let tipI=(new Date().getDate()*5)%TIPS.length;
+function showTip(){const t=TIPS[tipI];$("#tip").innerHTML=`<b>💡 ${esc(t.t)}</b><br>${esc(t.d)}`;$("#tip").style.animation="none";void $("#tip").offsetWidth;$("#tip").style.animation=""}
+$("#tipn").onclick=()=>{tipI=(tipI+1+Math.floor(Math.random()*(TIPS.length-1)))%TIPS.length;showTip()};
+$("#tips").onclick=()=>{
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📖 Study tips</h2><button class="alt" id="sx">✕</button></div>${TIPS.map((t,i)=>`<div class="chip" style="--c:${COL[i%COL.length]};margin:8px 0"><b>${esc(t.t)}</b><br>${esc(t.d)}</div>`).join("")}</div>`;
+  m.onclick=e=>{if(e.target===m||e.target.id==="sx")m.remove()};document.body.appendChild(m)};
+function countUp(el,to){
+  if(!el)return;if(!animOK()||!window.requestAnimationFrame){el.textContent=to+"%";return}
+  const t0=performance.now(),step=t=>{const k=Math.min(1,(t-t0)/900);el.textContent=Math.round(to*(1-Math.pow(1-k,3)))+"%";if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step);
+}
+function renderSide(){
+  const n=$("#snav");
+  if(!user){n.innerHTML='<p class="mute" style="padding:6px">Sign in to see your study sets.</p>';return}
+  let k=0;const st=()=>`style="animation-delay:${Math.min(k++,14)*25}ms"`;
+  const TABS=[["notes","📖","Study notes"],["visuals","🖼️","Visuals"],["cards","🃏","Flashcards"],["quiz","📝","Quiz"],...(cur?.dialogues?.items?.length?[["talk","💬","Conversations"]]:[]),["progress","📊","Progress"],["source","📄","My notes"],["add","➕","Add notes"]];
+  n.innerHTML=`<button class="sl ${cur?"":"on"}" data-go="home" ${st()}>🏠 Library</button>`
+   +(cur?`<div class="sh">${esc(cur.title.slice(0,26))}</div>`+TABS.map(([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()}>${i} ${l}</button>`).join(""):"")
+   +'<div class="sh">Your sets</div>'+(libraryList().slice(0,15).map(x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(x.title.slice(0,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`}).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>');
+}
+const closeSide=()=>{$("#side").classList.remove("open");$("#scrim").classList.remove("on")};
+$("#menu").onclick=()=>{$("#side").classList.toggle("open");$("#scrim").classList.toggle("on")};
+$("#scrim").onclick=closeSide;
+$("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.go)home();
+  else if(b.dataset.tab){tab=b.dataset.tab;study()}
+  else if(b.dataset.set){cur=sets.find(x=>x.id===b.dataset.set);tab="notes";study()}
+  closeSide()};
+{const sh=()=>document.documentElement.style.setProperty("--hh",$("header").offsetHeight+"px");sh();addEventListener("resize",sh)}
+showTip();
+
+const chats={};let picked="",thinking=false;
 function chip(){
   const e=$("#pk");e.hidden=!picked;
   e.innerHTML=picked?`<span>📌 “${esc(picked.slice(0,80))}${picked.length>80?"…":""}”</span><button class="alt" id="pkx">✕</button>`:"";
@@ -658,18 +735,18 @@ $("#ask").onclick=()=>{$("#chat").hidden=false;chatDraw();$("#ask").hidden=true;
 const hist=()=>chats[cur?cur.id:"general"]??=[];
 function chatDraw(){
   const h=hist(),log=$("#log");
-  log.innerHTML=(h.length?"":`<div class="msg ai">Hi! I can explain ideas, give hints and ask guiding questions${cur?" about “"+esc(cur.title)+"”":""}. For homework or quizzes I won’t hand over answers.</div>`)+h.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${esc(m.content)}</div>`).join("");
+  log.innerHTML=(h.length?"":`<div class="msg ai">Hi! I can explain ideas, give hints and ask guiding questions${cur?" about “"+esc(cur.title)+"”":""}. For homework or quizzes I won’t hand over answers.</div>`)+h.map(m=>`<div class="msg ${m.role==="user"?"me":"ai"}">${esc(m.content)}</div>`).join("")+(thinking?'<div class="msg ai typing"><i></i><i></i><i></i></div>':"");
   log.scrollTop=log.scrollHeight;
 }
 $("#fab").onclick=()=>{$("#chat").hidden=!$("#chat").hidden;chatDraw()};
 $("#cx").onclick=()=>$("#chat").hidden=true;
 $("#q").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#send").click()}};
 $("#send").onclick=async()=>{
-  const q=$("#q").value.trim();if(!q)return;const h=hist();h.push({role:"user",content:q});$("#q").value="";chatDraw();
+  const q=$("#q").value.trim();if(!q)return;const h=hist();h.push({role:"user",content:q});$("#q").value="";thinking=true;chatDraw();
   const b=$("#send");b.disabled=true;b.innerHTML='<span class="spin"></span>';
   try{const r=await ai("/chat",{messages:h.slice(-10),context:sample(cur?.text||"",6000),selection:picked});h.push({role:"assistant",content:r.reply});picked="";chip();sfx.pop()}
   catch(e){h.pop();toast(e.message)}
-  b.disabled=false;b.textContent="Send";chatDraw();
+  thinking=false;b.disabled=false;b.textContent="Send";chatDraw();
 };
 </script>
 </body>
