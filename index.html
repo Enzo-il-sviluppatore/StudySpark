@@ -77,7 +77,7 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
 <header><h1>⚡ StudySpark</h1><div style="display:flex;align-items:center"><button class="alt" id="gear" title="Settings">⚙️</button><button class="alt" id="snd" title="Sound on/off">🔊</button><div id="auth"></div></div></header>
 <main id="app"></main>
 <button id="fab" title="AI study tutor" hidden>🤖</button>
-<div id="chat" hidden><div class="ch">🤖 AI study tutor <button class="alt" id="cx">✕</button></div><div id="log"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
+<div id="chat" hidden><div class="ch"><span>🤖 AI study tutor <small class="qleft" data-p="/chat" style="font-weight:400;opacity:.9"></small></span><button class="alt" id="cx">✕</button></div><div id="log"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
 <button id="ask" hidden>🤖 Ask AI</button>
 <div id="toast"></div>
 
@@ -141,10 +141,12 @@ function openSettings(){
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
   <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
   ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
+  ${Object.values(Q).some(q=>q.cap)?`<h3>🤖 Today’s AI usage</h3>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
   <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information.</p>
   ${user?'<p><button class="alt" id="dl">⬇️ Download my data</button> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
   <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
   draw();
+  if(user)loadUsage().then(()=>{if(m.isConnected)draw()});
   m.onclick=e=>{
     if(e.target===m||e.target.id==="sx")return m.remove();
     const b=e.target.closest("button");if(!b)return;
@@ -210,7 +212,7 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account.</p></div>`;return}
-  await loadPrefs(u);await loadSets();home();
+  await loadPrefs(u);loadUsage();await loadSets();home();
 });
 
 async function loadSets(){
@@ -224,12 +226,12 @@ function home(){window.speechSynthesis&&speechSynthesis.cancel();
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
-  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span></p></div>
+  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
   <h2>Your library</h2><div class="grid">${libraryList().map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
   <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${learnLine(s)}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
-  $("#go").onclick=generate;
+  $("#go").onclick=generate;renderQuota();
   app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(s=>s.id===b.dataset.open);tab="notes";study()});
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
     try{await deleteDoc(doc(setsCol(),b.dataset.del));sets=sets.filter(s=>s.id!==b.dataset.del);home()}catch(e){toast("Delete failed: "+e.code)}});
@@ -288,9 +290,23 @@ async function readFile(){
   if(!$("#title").value)$("#title").value=fs.length>1?base+" + "+(fs.length-1)+" more":base;
   $("#st").textContent=`Loaded ${$("#txt").value.length.toLocaleString()} characters from ${fs.length} file${fs.length>1?"s":""}.`;
 }
+const Q={},QL={"/generate":["generation","generations"],"/chat":["message","messages"],"/grade":["check","checks"]};
+function renderQuota(){
+  document.querySelectorAll(".qleft").forEach(el=>{
+    const q=Q[el.dataset.p],lab=QL[el.dataset.p];if(!q||q.left==null){el.textContent="";return}
+    el.textContent=`· ${q.left}${q.cap?" of "+q.cap:""} ${lab[q.left===1?0:1]} left today`;
+    el.style.color=q.left===0?"var(--bad)":q.cap&&q.left/q.cap<=.25?"#f59e0b":"";
+  });
+}
+async function loadUsage(){
+  try{const j=await ai("/usage",{});if(j.enabled){for(const[k,v]of Object.entries(j.usage))Q[k]={left:Math.max(0,v.cap-v.used),cap:v.cap};renderQuota()}}catch(e){}
+}
 async function ai(path,body){
   const r=await fetch(AI_URL+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+await user.getIdToken()},body:JSON.stringify(body)});
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"AI service error ("+r.status+")");return j;
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){if(r.status===429&&Q[path]){Q[path].left=0;renderQuota()}throw new Error(j.error||"AI service error ("+r.status+")")}
+  if(typeof j.left==="number"){Q[path]={...(Q[path]||{}),left:j.left};renderQuota()}
+  return j;
 }
 async function generate(){
   const text=$("#txt").value.trim(),title=$("#title").value.trim()||"Untitled";
@@ -553,7 +569,8 @@ function mergeInto(c,g,text){
 function addTab(p){
   p.innerHTML=`<div class="card hero"><h3>➕ Add more notes to this set</h3><p class="mute">Upload more files or paste more text. New flashcards, quiz questions, concepts and vocabulary are added to this set. Nothing is removed.</p>
   <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.pptx"> <span class="mute">up to 10 files, 5 MB each</span></p>
-  <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span></p></div>`;
+  <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>`;
+  renderQuota();
   $("#afile").onchange=async()=>{const fs=$("#afile").files;if(!fs.length)return;const t=await readFiles(fs,$("#ast"));
     $("#atxt").value=($("#atxt").value.trim()?$("#atxt").value+"\n\n":"")+t;$("#ast").textContent=`Loaded ${$("#atxt").value.length.toLocaleString()} characters.`;$("#afile").value=""};
   $("#ago").onclick=async()=>{
