@@ -117,7 +117,7 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 <a href="#app" class="skip">Skip to main content</a>
 <header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
-<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><div class="tip" id="tip"></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="tipn">🔄 Next tip</button><button class="sl" id="tips">📖 All study tips</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst" hidden>📲 Install app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
+<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst" hidden>📲 Install app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
 <div id="chat" role="dialog" aria-label="AI study tutor" hidden><div class="ch"><span>🤖 AI study tutor <small class="qleft" data-p="/chat" style="font-weight:400;opacity:.9"></small></span><button class="alt" id="cx" aria-label="Close chat">✕</button></div><div id="log" role="log" aria-live="polite"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
@@ -271,7 +271,7 @@ async function loadSets(){
 
 /* ---------- Library / upload ---------- */
 function home(){window.speechSynthesis&&speechSynthesis.cancel();cur=null;renderSide();
-  app.innerHTML=`${planHtml()}<div class="card hero"><h2>✨ New study set</h2>
+  app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"> <span class="mute">.txt, .md, .pdf or .pptx · up to 10 files, 5 MB each</span></p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
@@ -280,7 +280,7 @@ function home(){window.speechSynthesis&&speechSynthesis.cancel();cur=null;render
   <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${learnLine(s)}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
-  $("#go").onclick=generate;renderQuota();
+  $("#go").onclick=generate;renderQuota();wireTips();
   app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{const[id,t]=b.dataset.plan.split(":");cur=sets.find(x=>x.id===id);tab=t;study()});
   app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(s=>s.id===b.dataset.open);tab="notes";study()});
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
@@ -712,13 +712,15 @@ const TIPS=[
  {k:"speak",t:"Speak the language out loud",d:"For language study, read dialogues aloud and answer in practice mode. Speaking helps recall more than reading."}];
 const tipHtml=k=>{const t=TIPS.find(x=>x.k===k);return t?`<p class="mute">💡 <b>${esc(t.t)}.</b> ${esc(t.d)}</p>`:""};
 let tipI=(new Date().getDate()*5)%TIPS.length;
-function showTip(){const t=TIPS[tipI];$("#tip").innerHTML=`<b>💡 ${esc(t.t)}</b><br>${esc(t.d)}`;$("#tip").style.animation="none";void $("#tip").offsetWidth;$("#tip").style.animation=""}
-$("#tipn").onclick=()=>{tipI=(tipI+1+Math.floor(Math.random()*(TIPS.length-1)))%TIPS.length;showTip()};
-$("#tips").onclick=()=>{
+function showTip(){const el=$("#tip");if(!el)return;const t=TIPS[tipI];el.innerHTML=`<b>${esc(t.t)}</b><br>${esc(t.d)}`;el.style.animation="none";void el.offsetWidth;el.style.animation=""}
+const nextTip=()=>{tipI=(tipI+1+Math.floor(Math.random()*(TIPS.length-1)))%TIPS.length;showTip()};
+const openTips=()=>{
   const old=$("#sm");if(old)old.remove();
   const m=document.createElement("div");m.id="sm";m.className="modal";
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📖 Study tips</h2><button class="alt" id="sx">✕</button></div>${TIPS.map((t,i)=>`<div class="chip" style="--c:${COL[i%COL.length]};margin:8px 0"><b>${esc(t.t)}</b><br>${esc(t.d)}</div>`).join("")}</div>`;
   m.onclick=e=>{if(e.target===m||e.target.id==="sx")m.remove()};document.body.appendChild(m)};
+const tipCard=()=>'<div class="card sec tipcard" style="--c:#f59e0b"><h3>💡 Study tip</h3><div id="tip" class="tip"></div><p><button class="alt" id="tipn">🔄 Next tip</button> <button class="alt" id="tips">📖 All study tips</button></p></div>';
+const wireTips=()=>{const a=$("#tipn");if(!a)return;a.onclick=nextTip;$("#tips").onclick=openTips;showTip()};
 function countUp(el,to){
   if(!el)return;if(!animOK()||!window.requestAnimationFrame){el.textContent=to+"%";return}
   const t0=performance.now(),step=t=>{const k=Math.min(1,(t-t0)/900);el.textContent=Math.round(to*(1-Math.pow(1-k,3)))+"%";if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step);
@@ -742,7 +744,6 @@ $("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
   else if(b.dataset.set){cur=sets.find(x=>x.id===b.dataset.set);tab="notes";study()}
   closeSide()};
 {const sh=()=>document.documentElement.style.setProperty("--hh",$("header").offsetHeight+"px");sh();addEventListener("resize",sh)}
-showTip();
 
 function planHtml(){
   if(!sets.length)return"";
