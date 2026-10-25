@@ -1230,24 +1230,45 @@ function openPrivacy(){
 $("#privacy").onclick=openPrivacy;
 /* ---------- Explain it differently ---------- */
 const XC={},XSTYLES=[["simpler","🧒 Simpler"],["analogy","🔗 Analogy"],["example","📌 Example"],["steps","🪜 Steps"],["memory","🧠 Memory trick"]];
+const XTAG={simpler:"in simple words",analogy:"as an analogy",example:"example",steps:"step by step",memory:"memory trick"};
 function openExplain(item){
   if(!user)return toast("Sign in to use this.");
   stopListen();const old=$("#sm");if(old)old.remove();
+  const canAdd=!!(cur&&cur.id&&!cur.shared);let last=null,added=false;
   const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Explain it differently");
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">💡 Explain it differently</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
   <div class="chip" style="--c:#b45309;margin:8px 0"><b>${esc(item.a)}</b>${item.b?`<br>${esc(item.b)}`:""}</div>
   <p class="mute">Pick a style:</p><div class="seg" role="group" aria-label="Explanation style">${XSTYLES.map(([k,l])=>`<button class="alt" data-x="${k}">${l}</button>`).join("")}</div>
   <div id="xo" aria-live="polite" style="margin-top:12px;white-space:pre-wrap"></div>
   <p class="mute"><span class="qleft" data-p="/explain"></span></p><p class="mute">AI-made. Check it against your notes.</p></div>`;
-  const show=t=>{const o=$("#xo");o.textContent=t;if(TTS){o.insertAdjacentHTML("beforeend",'<p style="white-space:normal"><button class="alt" id="xr">🔊 Read aloud</button></p>');$("#xr").onclick=()=>{stopListen();speakOnce(t,ttsLang())}}};
+  const close=()=>{stopListen();m.remove();if(added&&tab==="cards")study()};
+  const show=(t,k)=>{
+    last={k,t};const o=$("#xo");o.textContent=t;
+    const b=(TTS?'<button class="alt" id="xr">🔊 Read aloud</button> ':"")+(canAdd?'<button class="alt" id="xa">➕ Add as flashcard</button>':"");
+    if(b)o.insertAdjacentHTML("beforeend",`<p style="white-space:normal" id="xbar">${b}</p>`);
+    if($("#xr"))$("#xr").onclick=()=>{stopListen();speakOnce(t,ttsLang())};
+  };
   m.onclick=async e=>{
-    if(e.target===m||e.target.id==="sx"){stopListen();return m.remove()}
+    const id=e.target.id;
+    if(e.target===m||id==="sx")return close();
+    if(id==="xa"&&last){
+      $("#xbar").outerHTML=`<div id="xf" style="white-space:normal"><label class="mute" for="xfa">Front of the card</label><input type="text" id="xfa" maxlength="300" value="${esc((item.a+" ("+XTAG[last.k]+")").slice(0,300))}"><label class="mute" for="xfb">Back of the card</label><textarea id="xfb" maxlength="500" style="min-height:100px">${esc(last.t.slice(0,500))}</textarea><p><button id="xs">Save flashcard</button> <button class="alt" id="xc">Cancel</button></p></div>`;
+      $("#xfb").focus();return;
+    }
+    if(id==="xc"){show(last.t,last.k);return}
+    if(id==="xs"){
+      const f=$("#xfa").value.trim(),bk=$("#xfb").value.trim();
+      if(!f||!bk)return toast("Both sides of the card need some text.");
+      if((cur.cards||[]).some(c=>c.front===f&&c.back===bk))return toast("That flashcard is already in this set.");
+      cur.cards=[...(cur.cards||[]),{front:f,back:bk,box:0}];save({cards:cur.cards});markActive("edit");added=true;
+      toast("Added to your flashcards.");show(last.t,last.k);return;
+    }
     const k=e.target.dataset?.x;if(!k)return;
-    m.querySelectorAll("[data-x]").forEach(b=>b.className=b.dataset.x===k?"on":"alt");
+    m.querySelectorAll("[data-x]").forEach(x=>x.className=x.dataset.x===k?"on":"alt");
     const key=k+"|"+item.a+"|"+(item.b||"");
-    if(XC[key])return show(XC[key]);
+    if(XC[key])return show(XC[key],k);
     $("#xo").textContent="Thinking…";
-    try{const r=await ai("/explain",{item:{kind:item.kind,a:item.a,b:item.b||""},style:k,title:cur?.title||""});XC[key]=r.reply;if(m.isConnected)show(r.reply)}
+    try{const r=await ai("/explain",{item:{kind:item.kind,a:item.a,b:item.b||""},style:k,title:cur?.title||""});XC[key]=r.reply;if(m.isConnected)show(r.reply,k)}
     catch(x){if(m.isConnected)$("#xo").textContent="";toast(x.message)}
   };
   document.body.appendChild(m);renderQuota();$("#sx").focus();
