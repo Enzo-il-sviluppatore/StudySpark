@@ -114,6 +114,7 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 #player{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:22;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:8px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 8px 28px #0005;max-width:calc(100vw - 110px)}#player span{font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#player button{padding:6px 10px}
 .set>b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .ttlrow{display:flex;gap:8px;align-items:center}.ttlrow h2{margin:.5em 0;overflow-wrap:anywhere}.ttlrow button{padding:4px 9px}
+input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}mark{background:#fde68a;color:#1c2033;border-radius:3px;padding:0 2px}.snip{font-size:.82rem;margin:4px 0}
 </style>
 </head>
 <body>
@@ -243,7 +244,7 @@ $("#snd").onclick=()=>{S.sound=!S.sound;persist()};
 $("#gear").onclick=openSettings;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const m=$("#sm");m&&m.remove()}});
 function exportData(){
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),settings:S,stats:ST,sets},null,2)],{type:"application/json"}));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),settings:S,stats:ST,sets:sets.map(({_h,_hk,...r})=>r)},null,2)],{type:"application/json"}));
   a.download="studyspark-data.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 async function wipeData(m){
@@ -286,21 +287,81 @@ async function loadSets(){
 }
 
 /* ---------- Library / upload ---------- */
+/* ---------- Library search & subjects ---------- */
+let libQ="",libSub="";
+const subjOf=x=>x.meta?.subject||"";
+const subjects=()=>[...new Set(sets.map(subjOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+const hayOf=x=>{
+  const k=[x.title,subjOf(x),x.cards?.length,(x.cards||[]).reduce((a,c)=>a+String(c.front).length+String(c.back).length,0),x.text?.length,x.notes?.summary?.length,(x.notes?.concepts||[]).length].join("|");
+  if(x._hk!==k){x._h=[x.title,subjOf(x),x.notes?.summary,...(x.notes?.concepts||[]).flatMap(c=>[c.term,c.explanation]),...(x.notes?.vocab||[]).flatMap(v=>[v.word,v.definition]),...(x.cards||[]).flatMap(c=>[c.front,c.back]),x.text].filter(Boolean).join("\n");x._hk=k}
+  return x._h;
+};
+const qTerms=()=>libQ.toLowerCase().split(/\s+/).filter(Boolean);
+function libMatches(){
+  const terms=qTerms();
+  return libraryList().filter(x=>{
+    if(libSub==="__none"?!!subjOf(x):(libSub&&subjOf(x)!==libSub))return false;
+    if(!terms.length)return true;const h=hayOf(x).toLowerCase();return terms.every(t=>h.includes(t));
+  });
+}
+function snippet(x){
+  const terms=qTerms();if(!terms.length)return"";
+  if(terms.every(t=>x.title.toLowerCase().includes(t)))return"";
+  const raw=hayOf(x),i=raw.toLowerCase().indexOf(terms[0]);if(i<0)return"";
+  const ls=raw.lastIndexOf("\n",i)+1,le=raw.indexOf("\n",i),line=raw.slice(ls,le<0?undefined:le),j=i-ls,part=line.slice(Math.max(0,j-40),j+90).replace(/\s+/g," ").trim();
+  const re=new RegExp("("+terms.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","gi");
+  return `<p class="mute snip">…${part.split(re).map((y,k)=>k%2?`<mark>${esc(y)}</mark>`:esc(y)).join("")}…</p>`;
+}
+function drawTools(){
+  const el=$("#libtools");if(!el)return;
+  if(!sets.length){el.innerHTML="";return}
+  const sj=subjects();
+  el.innerHTML=`<p><input type="search" id="lq" placeholder="🔍 Search your sets (titles, notes, flashcards)" aria-label="Search your sets" value="${esc(libQ)}"></p>`
+   +(sj.length?`<div class="seg" role="group" aria-label="Filter by subject" style="margin-bottom:10px"><button class="${libSub?"alt":"on"}" data-sub="">All</button>${sj.map(v=>`<button class="${libSub===v?"on":"alt"}" data-sub="${esc(v)}">📁 ${esc(v)}</button>`).join("")}<button class="${libSub==="__none"?"on":"alt"}" data-sub="__none">No subject</button></div>`:"");
+  $("#lq").oninput=e=>{libQ=e.target.value;drawLib()};
+  el.querySelectorAll("[data-sub]").forEach(b=>b.onclick=()=>{libSub=b.dataset.sub;drawTools();drawLib()});
+}
+function drawLib(){
+  const el=$("#lib");if(!el)return;
+  const L=libMatches();
+  el.innerHTML=L.map((x,i)=>`<div class="card set" style="--c:${hue(x.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(x.title)}</div><b title="${esc(x.title)}">${esc(x.title)}</b>
+  <div class="mute">${subjOf(x)?`📁 ${esc(subjOf(x))}<br>`:""}${x.cards?.length||0} cards · ${x.quiz?.length||0} questions<br>Due today: ${dueCount(x)} · mastered ${(x.cards||[]).filter(c=>c.box>=3).length}${learnLine(x)}${x.meta?.scores?.length?`<br>Last quiz: ${x.meta.scores[x.meta.scores.length-1].pct}%`:x.lastScore!=null?`<br>Last quiz: ${Math.round(100*x.lastScore/x.quiz.length)}%`:""}</div>${snippet(x)}
+  <div class="bar"><i style="width:${pct(x)}%"></i></div><p><button data-open="${x.id}">Study</button> <button class="alt" data-del="${x.id}">Delete</button></p></div>`).join("")||`<p class="mute">${sets.length?"No sets match your search or filter.":"Nothing yet. Add notes above."}</p>`;
+  el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(x=>x.id===b.dataset.open);tab="notes";study()});
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
+    try{const sd=sets.find(x=>x.id===b.dataset.del);if(sd?.meta?.shareId)await deleteDoc(doc(db,"shared",sd.meta.shareId)).catch(()=>{});await deleteDoc(doc(setsCol(),b.dataset.del));sets=sets.filter(x=>x.id!==b.dataset.del);if(libSub&&!subjects().includes(libSub))libSub="";home()}catch(e){toast("Delete failed: "+e.code)}});
+}
+const subjBtn=()=>cur.shared?"":`<button class="alt" id="sj" aria-label="Set subject">📁 ${esc(subjOf(cur)||"Add subject")}</button>`;
+function openSubject(){
+  if(!cur||cur.shared)return;
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Set subject");
+  const ex=subjects().filter(v=>v!==subjOf(cur));
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📁 Subject</h2><button class="alt" id="sx" aria-label="Close">✕</button></div><p class="mute">Group your sets by subject, such as Biology or History, then filter your library by it.</p>
+  <p><input type="text" id="sjv" maxlength="24" placeholder="e.g. Biology" value="${esc(subjOf(cur))}" aria-label="Subject name"></p>
+  ${ex.length?`<div class="seg">${ex.map(v=>`<button class="alt" data-s="${esc(v)}">${esc(v)}</button>`).join("")}</div>`:""}
+  <p><button id="sjs">Save</button> ${subjOf(cur)?'<button class="alt" id="sjr">Remove subject</button>':""}</p></div>`;
+  const done=v=>{cur.meta={...(cur.meta||{}),subject:v||null};save({meta:cur.meta});m.remove();study()};
+  m.onclick=e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();
+    if(e.target.dataset.s)$("#sjv").value=e.target.dataset.s;
+    if(e.target.id==="sjs")done($("#sjv").value.trim().slice(0,24));
+    if(e.target.id==="sjr")done("");
+  };
+  document.body.appendChild(m);$("#sjv").onkeydown=e=>{if(e.key==="Enter")$("#sjs").click()};$("#sjv").focus();
+}
+
 function home(){stopListen();cur=null;renderSide();
   app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files</span> <span class="mute">Photo language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
-  <h2>Your library</h2><div class="grid">${libraryList().map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b title="${esc(s.title)}">${esc(s.title)}</b>
-  <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${learnLine(s)}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
-  <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
+  <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>`;
   $("#file").onchange=readFile;
   $("#go").onclick=generate;renderQuota();wireTips();
   app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{const[id,t]=b.dataset.plan.split(":");cur=sets.find(x=>x.id===id);tab=t;study()});
-  app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(s=>s.id===b.dataset.open);tab="notes";study()});
-  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
-    try{const sd=sets.find(x=>x.id===b.dataset.del);if(sd?.meta?.shareId)await deleteDoc(doc(db,"shared",sd.meta.shareId)).catch(()=>{});await deleteDoc(doc(setsCol(),b.dataset.del));sets=sets.filter(s=>s.id!==b.dataset.del);home()}catch(e){toast("Delete failed: "+e.code)}});
+  drawTools();drawLib();
 }
 async function readPptx(buf){
   const z=await JSZip.loadAsync(buf);
@@ -397,12 +458,13 @@ async function generate(){
 
 /* ---------- Study view ---------- */
 function study(){stopListen();renderSide();
-  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<div class="ttlrow"><h2>${esc(cur.title)}</h2>${cur.shared?"":'<button class="alt" id="rn" aria-label="Rename this set" title="Rename">✏️</button>'}</div>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
+  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<div class="ttlrow"><h2>${esc(cur.title)}</h2>${cur.shared?"":'<button class="alt" id="rn" aria-label="Rename this set" title="Rename">✏️</button>'}${subjBtn()}</div>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
   <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),...(cur.shared?[]:["progress","edit","source","add"])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",edit:"✏️ Edit",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   if($("#back"))$("#back").onclick=()=>{if(SHARE_ID){SHARE_ID=null;history.replaceState(null,"",location.pathname)}home()};
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
   ({notes,visuals,cards,quiz,talk,progress,edit:editTab,source,add:addTab})[tab]($("#pane"));
   if($("#cpy"))$("#cpy").onclick=copyShared;
+  if($("#sj"))$("#sj").onclick=openSubject;
   if($("#rn"))$("#rn").onclick=()=>{const t=(prompt("Rename this set (up to 60 characters):",cur.title)||"").trim().slice(0,60);if(!t||t===cur.title)return;cur.title=t;save({title:t});study()};
   if(nav){const e=document.getElementById(nav);nav=null;if(e){e.classList.add("hl");e.scrollIntoView({block:"center",behavior:"smooth"})}}
 }
