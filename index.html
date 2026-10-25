@@ -112,13 +112,15 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 .badge{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;font-size:.85rem}.badge .bi{font-size:1.8rem;display:block}.badge.off{opacity:.6;filter:grayscale(1)}.badge.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 #player{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:22;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:8px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 8px 28px #0005;max-width:calc(100vw - 110px)}#player span{font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#player button{padding:6px 10px}
+.set>b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ttlrow{display:flex;gap:8px;align-items:center}.ttlrow h2{margin:.5em 0;overflow-wrap:anywhere}.ttlrow button{padding:4px 9px}
 </style>
 </head>
 <body>
 <a href="#app" class="skip">Skip to main content</a>
 <header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
-<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst">📲 Get the app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
+<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst">📲 Get the app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
 <div id="player" role="region" aria-label="Audio player" hidden><span id="pl">Reading…</span><button class="alt" id="ppp" aria-label="Pause">⏸</button><button class="alt" id="pnx" aria-label="Next section">⏭</button><button class="alt" id="psp" aria-label="Stop">⏹</button></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
@@ -139,6 +141,7 @@ const firebaseConfig = {
   appId: "1:498758919495:web:1df7d5f873793de7df9862"
 };
 const AI_URL = "https://studyspark-ai.vincenzobal12.workers.dev"; // Cloudflare Worker (holds the AI key)
+const CONTACT = ""; // optional: an email address shown on the Privacy & terms page, e.g. "you@example.com"
 /* ============================================== */
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -254,6 +257,7 @@ async function wipeData(m){
     S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};applySettings();m.remove();home();toast("All your data was deleted.");
   }catch(e){toast("Couldn’t delete everything: "+e.code)}
 }
+const short=(t,n)=>String(t).length>n?String(t).slice(0,n-1)+"…":String(t);
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -272,7 +276,7 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;if(!u){ST=blankST();stTimer&&clearTimeout(stTimer)}renderSide();renderStreak();$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u&&SHARE_ID){openShared(SHARE_ID);return}
-  if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account.</p></div>`;return}
+  if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>.</p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};return}
   await loadPrefs(u);await loadStats(u);loadUsage();await loadSets();SHARE_ID?openShared(SHARE_ID):home();
 });
 
@@ -284,11 +288,11 @@ async function loadSets(){
 /* ---------- Library / upload ---------- */
 function home(){stopListen();cur=null;renderSide();
   app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
-  <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
+  <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files</span> <span class="mute">Photo language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
-  <h2>Your library</h2><div class="grid">${libraryList().map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b>${esc(s.title)}</b>
+  <h2>Your library</h2><div class="grid">${libraryList().map((s,i)=>`<div class="card set" style="--c:${hue(s.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(s.title)}</div><b title="${esc(s.title)}">${esc(s.title)}</b>
   <div class="mute">${s.cards?.length||0} cards · ${s.quiz?.length||0} questions<br>Due today: ${dueCount(s)} · mastered ${(s.cards||[]).filter(c=>c.box>=3).length}${learnLine(s)}${s.meta?.scores?.length?`<br>Last quiz: ${s.meta.scores[s.meta.scores.length-1].pct}%`:s.lastScore!=null?`<br>Last quiz: ${Math.round(100*s.lastScore/s.quiz.length)}%`:""}</div>
   <div class="bar"><i style="width:${pct(s)}%"></i></div><p><button data-open="${s.id}">Study</button> <button class="alt" data-del="${s.id}">Delete</button></p></div>`).join("")||'<p class="mute">Nothing yet. Add notes above.</p>'}</div>`;
   $("#file").onchange=readFile;
@@ -358,7 +362,7 @@ async function readFile(){
   if(!t.trim()){$("#file").value="";$("#st").textContent="";return}
   $("#txt").value=($("#txt").value.trim()?$("#txt").value+"\n\n":"")+t;
   const base=fs[0].name.replace(/\.\w+$/,"");
-  if(!$("#title").value)$("#title").value=fs.length>1?base+" + "+(fs.length-1)+" more":base;
+  if(!$("#title").value)$("#title").value=(fs.length>1?base+" + "+(fs.length-1)+" more":base).slice(0,60);
   $("#st").textContent=`Loaded ${$("#txt").value.length.toLocaleString()} characters from ${fs.length} file${fs.length>1?"s":""}.`+([...fs].some(x=>IMG_RE.test(x.name))?" Photos can have reading mistakes, so check the text below.":"");
 }
 const Q={},QL={"/generate":["generation","generations"],"/chat":["message","messages"],"/grade":["check","checks"]};
@@ -381,7 +385,7 @@ async function ai(path,body){
   return j;
 }
 async function generate(){
-  const text=$("#txt").value.trim(),title=$("#title").value.trim()||"Untitled";
+  const text=$("#txt").value.trim(),title=($("#title").value.trim()||"Untitled").slice(0,60);
   if(text.length<200)return toast("Please add at least a few paragraphs of notes (200+ characters).");
   const b=$("#go");b.disabled=true;b.innerHTML='<span class="spin"></span>Generating… (10–30s)';
   try{
@@ -393,12 +397,13 @@ async function generate(){
 
 /* ---------- Study view ---------- */
 function study(){stopListen();renderSide();
-  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<h2>${esc(cur.title)}</h2>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
+  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<div class="ttlrow"><h2>${esc(cur.title)}</h2>${cur.shared?"":'<button class="alt" id="rn" aria-label="Rename this set" title="Rename">✏️</button>'}</div>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
   <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),...(cur.shared?[]:["progress","edit","source","add"])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",edit:"✏️ Edit",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   if($("#back"))$("#back").onclick=()=>{if(SHARE_ID){SHARE_ID=null;history.replaceState(null,"",location.pathname)}home()};
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
   ({notes,visuals,cards,quiz,talk,progress,edit:editTab,source,add:addTab})[tab]($("#pane"));
   if($("#cpy"))$("#cpy").onclick=copyShared;
+  if($("#rn"))$("#rn").onclick=()=>{const t=(prompt("Rename this set (up to 60 characters):",cur.title)||"").trim().slice(0,60);if(!t||t===cur.title)return;cur.title=t;save({title:t});study()};
   if(nav){const e=document.getElementById(nav);nav=null;if(e){e.classList.add("hl");e.scrollIntoView({block:"center",behavior:"smooth"})}}
 }
 const save=p=>{if(!user||!cur||cur.shared||!cur.id)return Promise.resolve();return setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code))};
@@ -767,8 +772,8 @@ function renderSide(){
   const TABS=[["notes","📖","Study notes"],["visuals","🖼️","Visuals"],["cards","🃏","Flashcards"],["quiz","📝","Quiz"],...(cur?.dialogues?.items?.length?[["talk","💬","Conversations"]]:[]),["progress","📊","Progress"],["edit","✏️","Edit cards & questions"],["source","📄","My notes"],["add","➕","Add notes"]];
   const TB=sh?TABS.filter(t=>["notes","visuals","cards","quiz","talk"].includes(t[0])):TABS;
   n.innerHTML=(user?`<button class="sl ${cur?"":"on"}" data-go="home" ${st()}>🏠 Library</button>`:"")
-   +(cur?`<div class="sh">${esc(cur.title.slice(0,26))}</div>`+TB.map(([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()} ${tab===t?'aria-current="page"':""}>${i} ${l}</button>`).join("")+`<button class="sl" data-act="guide" ${st()}>🖨️ Study guide (PDF)</button>`+(sh?"":`<button class="sl" data-act="share" ${st()}>🔗 Share</button>`):"")
-   +(user?'<div class="sh">Your sets</div>'+(libraryList().slice(0,15).map(x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(x.title.slice(0,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`}).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>'):"");
+   +(cur?`<div class="sh">${esc(short(cur.title,26))}</div>`+TB.map(([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()} ${tab===t?'aria-current="page"':""}>${i} ${l}</button>`).join("")+`<button class="sl" data-act="guide" ${st()}>🖨️ Study guide (PDF)</button>`+(sh?"":`<button class="sl" data-act="share" ${st()}>🔗 Share</button>`):"")
+   +(user?'<div class="sh">Your sets</div>'+(libraryList().slice(0,15).map(x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(short(x.title,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`}).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>'):"");
 }
 const closeSide=()=>{$("#side").classList.remove("open");$("#scrim").classList.remove("on")};
 $("#menu").onclick=()=>{$("#side").classList.toggle("open");$("#scrim").classList.toggle("on")};
@@ -788,7 +793,7 @@ function planHtml(){
   const items=L.filter(x=>dueCount(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,4);
   const weak=sets.filter(x=>x.meta?.scores?.length).map(x=>({x,p:x.meta.scores[x.meta.scores.length-1].pct})).filter(o=>o.p<80).sort((a,b)=>a.p-b.p)[0];
   return `<div class="card sec" style="--c:#10b981"><h3>📅 Today</h3>${streakLine()}<p>${total?`You have <b>${total}</b> flashcard${total>1?"s":""} due across ${nsets} set${nsets>1?"s":""}.`:"🎉 No flashcards are due today."}</p>`
-   +items.map(x=>{const d=daysLeft(x),n=dueCount(x);return `<div class="row"><span>${icon(x.title)} <b>${esc(x.title)}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
+   +items.map(x=>{const d=daysLeft(x),n=dueCount(x);return `<div class="row"><span>${icon(x.title)} <b title="${esc(x.title)}">${esc(short(x.title,34))}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
    +(weak?`<p class="mute">💡 Your lowest recent quiz is <b>${esc(weak.x.title)}</b> (${weak.p}%). Retaking it, or practising only what you missed, would help.</p>`:"")+"</div>";
 }
 function editTab(p){
@@ -1044,7 +1049,7 @@ async function copyShared(){
   if(!user)return toast("Sign in with Google to save a copy.");
   const b=$("#cpy");if(b)b.disabled=true;
   try{
-    const data=JSON.parse(JSON.stringify({title:cur.title+" (copy)",created:Date.now(),text:"",notes:cur.notes,cards:cur.cards.map(c=>({front:c.front,back:c.back,box:0})),quiz:cur.quiz,lastScore:null,meta:{scores:[]},visuals:cur.visuals,dialogues:cur.dialogues}));
+    const data=JSON.parse(JSON.stringify({title:cur.title.slice(0,52)+" (copy)",created:Date.now(),text:"",notes:cur.notes,cards:cur.cards.map(c=>({front:c.front,back:c.back,box:0})),quiz:cur.quiz,lastScore:null,meta:{scores:[]},visuals:cur.visuals,dialogues:cur.dialogues}));
     const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});
     SHARE_ID=null;history.replaceState(null,"",location.pathname);cur=sets[0];tab="notes";study();toast("Saved a copy to your library.");
   }catch(e){toast("Couldn’t save a copy: "+(e.code||e.message));if(b)b.disabled=false}
@@ -1145,6 +1150,19 @@ function dictate(ta,btn,idle="🎤 Dictate",busy="⏹ Stop dictating"){
 }
 if(SR){$("#mic2").hidden=false;$("#mic2").onclick=()=>dictate($("#q"),$("#mic2"),"🎤","⏹")}
 
+function openPrivacy(){
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Privacy and terms");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">🔒 Privacy &amp; terms</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <h3>What we keep</h3><p>When you sign in with Google, we receive your name, email and profile picture from Google. We show your name inside the app. We store your study sets (your notes text, the study materials made from them, flashcard and quiz progress), your settings, and your streak and badges, so they’re there when you come back.</p>
+  <h3>Who processes it</h3><ul><li><b>Google Firebase</b> stores your account and data.</li><li><b>An AI service (Groq)</b>, reached through our own server, receives the text of your notes when you make a set, your tutor questions, and your written quiz answers, so it can reply. Please don’t include private details such as addresses, phone numbers or health or school records.</li><li><b>Photos</b> of notes are read inside your browser. They aren’t uploaded.</li><li><b>Wikimedia Commons</b> receives search words (not your name) to find images. Fonts and code libraries load from public CDNs.</li><li><b>Dictation</b> uses your browser’s speech service. In Chrome and Edge your voice goes to Google or Microsoft while you dictate.</li></ul>
+  <h3>Sharing</h3><p>If you create a share link, anyone who has the link can view a copy of that set’s study materials until it expires or you stop sharing. Original notes, scores and your email are not included.</p>
+  <h3>Your choices</h3><p>In <b>⚙️ Settings → Your data</b> you can download your data, or delete all of it, including share links. You can also stop sharing a set at any time.</p>
+  <h3>Using StudySpark</h3><ul><li>StudySpark is a study aid. AI-made content can be wrong, so check it against your own notes and your teacher.</li><li>Only upload notes you’re allowed to use. Don’t upload anything unlawful, harmful or private about other people.</li><li>Don’t use the tutor to get answers to graded work; it is designed to give hints.</li><li>The service is provided as is, may change or stop, and may have limits to keep it free.</li></ul>
+  ${CONTACT?`<h3>Contact</h3><p>${esc(CONTACT)}</p>`:""}</div>`;
+  m.onclick=e=>{if(e.target===m||e.target.id==="sx")m.remove()};document.body.appendChild(m);$("#sx").focus();
+}
+$("#privacy").onclick=openPrivacy;
 const chats={};let picked="",thinking=false;
 function chip(){
   const e=$("#pk");e.hidden=!picked;
