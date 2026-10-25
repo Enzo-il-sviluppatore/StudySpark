@@ -111,6 +111,7 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 .ch .qleft{color:#fff!important}.dot{display:inline-block;width:16px;height:16px;border-radius:50%;background:var(--line);margin:2px}.dot.on{background:var(--brand)}
 .badge{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;font-size:.85rem}.badge .bi{font-size:1.8rem;display:block}.badge.off{opacity:.6;filter:grayscale(1)}.badge.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+#player{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:22;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:8px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 8px 28px #0005;max-width:calc(100vw - 110px)}#player span{font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#player button{padding:6px 10px}
 </style>
 </head>
 <body>
@@ -119,8 +120,9 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
 <div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst" hidden>📲 Install app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
+<div id="player" role="region" aria-label="Audio player" hidden><span id="pl">Reading…</span><button class="alt" id="ppp" aria-label="Pause">⏸</button><button class="alt" id="pnx" aria-label="Next section">⏭</button><button class="alt" id="psp" aria-label="Stop">⏹</button></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
-<div id="chat" role="dialog" aria-label="AI study tutor" hidden><div class="ch"><span>🤖 AI study tutor <small class="qleft" data-p="/chat" style="font-weight:400;opacity:.9"></small></span><button class="alt" id="cx" aria-label="Close chat">✕</button></div><div id="log" role="log" aria-live="polite"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button id="send">Send</button></div></div>
+<div id="chat" role="dialog" aria-label="AI study tutor" hidden><div class="ch"><span>🤖 AI study tutor <small class="qleft" data-p="/chat" style="font-weight:400;opacity:.9"></small></span><button class="alt" id="cx" aria-label="Close chat">✕</button></div><div id="log" role="log" aria-live="polite"></div><div id="pk" hidden></div><div class="cin"><textarea id="q" maxlength="1000" placeholder="Ask about your notes…"></textarea><button class="alt" id="mic2" aria-label="Dictate your question" hidden>🎤</button><button id="send">Send</button></div></div>
 <button id="ask" hidden>🤖 Ask AI</button>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -150,9 +152,9 @@ const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.b
 const COL=["#5b4bdb","#0369a1","#047857","#b45309","#b91c1c","#be185d","#6d28d9"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0369a1","Process"],example:["#047857","Example"],term:["#b45309","Term"]};
 const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#7ec315","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]},lavender:{n:"Lavender",b:["#7c3aed","#c4b5fd"],g:["#7c3aed","#a78bfa","#ea8dfc"]},mint:{n:"Mint",b:["#0f766e","#5eead4"],g:["#0f766e","#2bc88e","#38bdf8"]},rose:{n:"Rose",b:["#be123c","#fda4af"],g:["#e11d48","#fb7185","#f59e0b"]},midnight:{n:"Midnight",b:["#1d4ed8","#93c5fd"],g:["#0f172a","#1e3a8a","#7c3aed"]},neon:{n:"Neon",b:["#087994","#22d3ee"],g:["#06b6d4","#d946ef","#7ec315"]},coffee:{n:"Coffee",b:["#92400e","#fbbf24"],g:["#78350f","#b45309","#d97706"]},candy:{n:"Candy",b:["#cb226d","#f9a8d4"],g:["#ec4899","#10bdd8","#caa902"]},arctic:{n:"Arctic",b:["#026fa9","#7dd3fc"],g:["#0284c7","#06c0d8","#9bacfc"]}};
-const DEF={theme:"auto",palette:"aurora",bg:"glow",font:"system",size:"normal",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
-let S={...DEF,types:{...DEF.types}};
-try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})}}}catch(e){}
+const DEF={listen:{rate:1,voice:"",dlang:""},theme:"auto",palette:"aurora",bg:"glow",font:"system",size:"normal",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
+let S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};
+try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})},listen:{...S.listen,...(r.listen||{})}}}catch(e){}
 const rl=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
 const crat=(a,b)=>{const x=rl(a),y=rl(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
 const animOK=()=>S.anim==="full"||(S.anim==="auto"&&!matchMedia("(prefers-reduced-motion:reduce)").matches);
@@ -170,7 +172,7 @@ function persist(){
 }
 async function loadPrefs(u){
   try{const d=await getDoc(doc(db,"users",u.uid,"prefs","settings"));
-    if(d.exists()){const r=d.data();S={...S,...r,types:{...S.types,...(r.types||{})}};try{localStorage.setItem("ss_settings",JSON.stringify(S))}catch(e){}applySettings()}}catch(e){}
+    if(d.exists()){const r=d.data();S={...S,...r,types:{...S.types,...(r.types||{})},listen:{...S.listen,...(r.listen||{})}};try{localStorage.setItem("ss_settings",JSON.stringify(S))}catch(e){}applySettings()}}catch(e){}
 }
 matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",applySettings);
 function openSettings(){
@@ -185,6 +187,10 @@ function openSettings(){
   <div class="row"><span>Font</span>${seg("font",[["system","Standard"],["rounded","Rounded"],["serif","Serif"],["dyslexic","Dyslexia-friendly"],["hyper","Hyperlegible"]])}</div>
   <div class="row"><span>Text size</span>${seg("size",[["normal","Normal"],["large","Large"],["xl","Extra large"]])}</div>
   <h3>🔊 Sound</h3>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
+  <h3>🔈 Listen &amp; dictate</h3>${typeof speechSynthesis==="undefined"?'<p class="mute">Reading aloud isn’t supported in this browser.</p>':`<div class="row"><span>Voice</span><select id="vx" aria-label="Voice"><option value="">Automatic</option>${speechSynthesis.getVoices().slice().sort((a,b)=>(a.lang+a.name).localeCompare(b.lang+b.name)).map(v=>`<option value="${esc(v.name)}" ${S.listen.voice===v.name?"selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select></div>
+  <div class="row"><span>Speed</span><span><input type="range" id="rt" min="0.6" max="1.5" step="0.1" value="${S.listen.rate}" aria-label="Reading speed"> <button class="alt" id="tv">▶ Test</button></span></div>`}
+  <div class="row"><span>Dictation language</span><select id="dl" aria-label="Dictation language"><option value="">Automatic</option>${[["en-US","English (US)"],["en-GB","English (UK)"],["es-ES","Spanish"],["fr-FR","French"],["de-DE","German"],["it-IT","Italian"],["pt-BR","Portuguese"],["nl-NL","Dutch"]].map(([v,l])=>`<option value="${v}" ${S.listen.dlang===v?"selected":""}>${l}</option>`).join("")}</select></div>
+  <p class="mute">Voices depend on your device. Dictation uses your browser’s speech service: in Chrome and Edge your voice is sent to Google or Microsoft to be turned into text. It only listens while you press 🎤.</p>
   <h3>✨ Animations</h3><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
   <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
@@ -194,6 +200,7 @@ function openSettings(){
   ${user?'<p><button class="alt" id="dl">⬇️ Download my data</button> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
   <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
   draw();
+  if(typeof speechSynthesis!=="undefined")speechSynthesis.addEventListener("voiceschanged",()=>{if(m.isConnected)draw()},{once:true});
   if(user)loadUsage().then(()=>{if(m.isConnected)draw()});
   m.onclick=e=>{
     if(e.target===m||e.target.id==="sx")return m.remove();
@@ -201,13 +208,14 @@ function openSettings(){
     if(b.dataset.k){S[b.dataset.k]=b.dataset.v;persist();draw()}
     else if(b.dataset.pal){S.palette=b.dataset.pal;persist();draw()}
     else if(b.id==="tst")sfx.correct();
+    else if(b.id==="tv"){stopListen();speakOnce("This is how your study notes will sound.")}
     else if(b.id==="dl")exportData();
     else if(b.id==="del")wipeData(m);
-    else if(b.id==="rst"){S={...DEF,types:{...DEF.types}};persist();draw()}
+    else if(b.id==="rst"){S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};persist();draw()}
   };
   m.onchange=e=>{const t=e.target;
     if(t.dataset.c){const k=t.dataset.c;if(k.startsWith("t:"))S.types[k.slice(2)]=t.checked;else S[k]=t.checked;persist()}
-    if(t.id==="qn"){S.qn=+t.value;persist()}if(t.id==="vol"){S.vol=+t.value;persist()}};
+    if(t.id==="vx"){S.listen={...S.listen,voice:t.value};persist()}if(t.id==="rt"){S.listen={...S.listen,rate:+t.value};persist()}if(t.id==="dl"){S.listen={...S.listen,dlang:t.value};persist()}if(t.id==="qn"){S.qn=+t.value;persist()}if(t.id==="vol"){S.vol=+t.value;persist()}};
 }
 let AC=null;
 const tone=(f,d=.12,type="sine",v=.06,t0=0)=>{
@@ -243,7 +251,7 @@ async function wipeData(m){
     const shr=await getDocs(query(collection(db,"shared"),where("ownerUid","==",user.uid))).catch(()=>null);if(shr)await Promise.all(shr.docs.map(d=>deleteDoc(d.ref)));
     await deleteDoc(doc(db,"users",user.uid,"prefs","settings")).catch(()=>{});await deleteDoc(doc(db,"users",user.uid,"prefs","stats")).catch(()=>{});try{localStorage.removeItem("ss_stats_"+user.uid)}catch(e){}ST=blankST();renderStreak();
     sets=[];cur=null;try{localStorage.removeItem("ss_settings")}catch(e){}
-    S={...DEF,types:{...DEF.types}};applySettings();m.remove();home();toast("All your data was deleted.");
+    S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};applySettings();m.remove();home();toast("All your data was deleted.");
   }catch(e){toast("Couldn’t delete everything: "+e.code)}
 }
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4000)};
@@ -274,7 +282,7 @@ async function loadSets(){
 }
 
 /* ---------- Library / upload ---------- */
-function home(){window.speechSynthesis&&speechSynthesis.cancel();cur=null;renderSide();
+function home(){stopListen();cur=null;renderSide();
   app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="100" placeholder="Title (e.g. Biology ch. 4)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files</span> <span class="mute">Photo language:</span> ${olangSel()}</p>
@@ -384,7 +392,7 @@ async function generate(){
 }
 
 /* ---------- Study view ---------- */
-function study(){window.speechSynthesis&&speechSynthesis.cancel();renderSide();
+function study(){stopListen();renderSide();
   app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<h2>${esc(cur.title)}</h2>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
   <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),...(cur.shared?[]:["progress","edit","source","add"])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",edit:"✏️ Edit",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   if($("#back"))$("#back").onclick=()=>{if(SHARE_ID){SHARE_ID=null;history.replaceState(null,"",location.pathname)}home()};
@@ -404,7 +412,7 @@ function notes(p){
    +sec("#f59e0b","💡 Key concepts",chips(n.concepts,"term","explanation","c-"))
    +sec("#10b981","📖 Vocabulary",chips(n.vocab,"word","definition","v-"))
    +sec("#ec4899","🔍 Examples",`<ul>${(n.examples||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`);
-  const pg=document.createElement("p");pg.innerHTML='<button class="alt" id="pg">🖨️ Study guide (PDF)</button>';p.prepend(pg);$("#pg").onclick=openGuide;
+  const pg=document.createElement("p");pg.innerHTML=(TTS?'<button class="alt" id="ls">🔊 Listen</button> ':"")+'<button class="alt" id="pg">🖨️ Study guide (PDF)</button>';p.prepend(pg);$("#pg").onclick=openGuide;if($("#ls"))$("#ls").onclick=()=>playItems(notesItems(n));
   const d=mapData(n);if(d.nodes.length>1)conceptMap($("#map"),d);else $("#map").parentElement.hidden=true;
 }
 function mapData(n){
@@ -461,11 +469,21 @@ function cards(p){
       catch(e){toast(e.message);b.disabled=false;b.textContent="Generate flashcards"}};
     return;
   }
-  let queue=[],total=0,flip=false;
+  let queue=[],total=0,flip=false,hfOn=false;
   const begin=every=>{queue=all.map((_,i)=>i).filter(i=>every||isDue(all[i]));total=queue.length};
   const csv=()=>{
     const t=all.map(c=>[c.front,c.back].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=(cur.title||"flashcards").replace(/[^\w-]+/g,"_")+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  const runHF=async()=>{
+    stopListen();const my=LS.run;hfOn=true;const lang=ttsLang(),n=queue.length;
+    for(let k=0;k<n&&LS.run===my;k++){
+      flip=false;draw();await speakOnce(all[queue[0]].front,lang);if(LS.run!==my)return;
+      await sleep(4000);if(LS.run!==my)return;
+      flip=true;draw();await speakOnce(all[queue[0]].back,lang);if(LS.run!==my)return;
+      await sleep(1500);if(LS.run!==my)return;queue.push(queue.shift());
+    }
+    hfOn=false;flip=false;draw();
   };
   const swipe=cls=>{const el=$("#fc");if(el&&animOK()){$("#yes").disabled=true;$("#no").disabled=true;el.classList.add(cls);setTimeout(draw,230)}else draw()};
   const draw=()=>{
@@ -477,10 +495,11 @@ function cards(p){
     const c=all[queue[0]];
     p.innerHTML=`<p class="mute">${queue.length} left · ${all.filter(isDue).length} due · mastered ${all.filter(x=>x.box>=3).length} of ${all.length}</p><div class="bar"><i style="width:${total?100*(total-queue.length)/total:0}%"></i></div>
     <div class="card fc ${flip?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flashcard. Press Enter to flip.">${esc(flip?c.back:c.front)}</div><p class="mute">Tap the card to flip. “Got it” spaces it further out; “Still learning” brings it back soon.</p>
-    <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>`;
-    $("#fc").onclick=()=>{sfx.flip();flip=!flip;draw()};$("#fc").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#fc").click()}};$("#fc").focus({preventScroll:true});$("#csv").onclick=csv;
-    $("#yes").onclick=()=>{markActive("cards");sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+interval(c.box);queue.shift();flip=false;save({cards:all});swipe("swr")};
-    $("#no").onclick=()=>{markActive("cards");c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});swipe("swl")};
+    <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>${TTS?` <button class="alt" id="rd">🔊 Read</button> <button class="alt" id="hf">${hfOn?"⏹ Stop hands-free":"🎧 Hands-free"}</button>`:""}`;
+    $("#fc").onclick=()=>{hfOn=false;stopListen();sfx.flip();flip=!flip;draw()};$("#fc").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#fc").click()}};$("#fc").focus({preventScroll:true});
+    if($("#rd")){$("#rd").onclick=()=>{stopListen();speakOnce(flip?c.back:c.front,ttsLang())};$("#hf").onclick=()=>{if(hfOn){hfOn=false;stopListen();draw()}else runHF()}}$("#csv").onclick=csv;
+    $("#yes").onclick=()=>{hfOn=false;stopListen();markActive("cards");sfx.correct();c.box=Math.min(4,(c.box||0)+1);c.due=Date.now()+interval(c.box);queue.shift();flip=false;save({cards:all});swipe("swr")};
+    $("#no").onclick=()=>{hfOn=false;stopListen();markActive("cards");c.box=0;c.due=Date.now();queue.push(queue.shift());flip=false;save({cards:all});swipe("swl")};
   };
   begin(false);draw();
 }
@@ -562,9 +581,11 @@ function quiz(p){
     if(i>=qs.length)return result();
     const q=qs[i],ord=q.options?(S.shuffleO?shuf(q.options.map((_,k)=>k)):q.options.map((_,k)=>k)):[];
     const tag={multi:" · ☑️ Select ALL that apply",written:" · ✍️ Written answer"}[q.type]||"";
-    p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}${tag}</p><div class="card"><b>${esc(q.q)}</b>
-    ${q.type==="written"?'<textarea id="wa" maxlength="1000" placeholder="Type your answer…"></textarea><p><button id="ck">Check answer</button></p>':ord.map(k=>`<div class="optw"><button class="alt opt" data-k="${k}">${esc(q.options[k])}</button><div class="why" id="w${k}"></div></div>`).join("")+(q.type==="multi"?'<p><button id="ck">Check answer</button></p>':"")}
+    p.innerHTML=`<div class="bar"><i style="width:${100*i/qs.length}%"></i></div><p class="mute">Question ${i+1} of ${qs.length}${tag}</p><div class="card"><b>${esc(q.q)}</b>${TTS?' <button class="alt" id="rq" aria-label="Read question aloud">🔊</button>':""}
+    ${q.type==="written"?'<textarea id="wa" maxlength="1000" placeholder="Type or dictate your answer…"></textarea><p><button id="ck">Check answer</button>'+(SR?' <button class="alt" id="mic" aria-pressed="false">🎤 Dictate</button>':"")+'</p>':ord.map(k=>`<div class="optw"><button class="alt opt" data-k="${k}">${esc(q.options[k])}</button><div class="why" id="w${k}"></div></div>`).join("")+(q.type==="multi"?'<p><button id="ck">Check answer</button></p>':"")}
     <div id="ex" class="mute" aria-live="polite"></div></div>`;
+    if($("#rq"))$("#rq").onclick=()=>{stopListen();speakOnce(q.q+". "+(q.options||[]).map((o,k)=>"Option "+String.fromCharCode(65+k)+". "+o).join(". "),ttsLang())};
+    if($("#mic"))$("#mic").onclick=()=>dictate($("#wa"),$("#mic"));
     if(q.type==="mc")p.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const k=+b.dataset.k,ok=isOK(q,k);ok?sfx.correct():sfx.wrong();reveal(q,[k]);finish(q,ok?1:0)});
     if(q.type==="multi"){
       const sel=new Set();
@@ -1036,6 +1057,63 @@ function openShare(){
     else if(id==="stop"){try{await deleteDoc(doc(db,"shared",cur.meta.shareId));cur.meta={...cur.meta,shareId:null,shareExp:null};save({meta:cur.meta});draw();toast("Sharing stopped. The link no longer works.")}catch(x){toast("Couldn’t stop sharing: "+(x.code||x.message))}}
   };
 }
+
+/* ---------- Listen mode & dictation ---------- */
+const TTS=typeof speechSynthesis!=="undefined",SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const LS={items:[],i:0,run:0,paused:false};let rec=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ttsLang=()=>cur?.dialogues?.lang||"";
+function pickVoice(lang){
+  const vs=speechSynthesis.getVoices();
+  if(lang)return vs.find(v=>v.lang.toLowerCase()===lang.toLowerCase())||vs.find(v=>v.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()))||null;
+  return S.listen.voice&&vs.find(v=>v.name===S.listen.voice)||null;
+}
+function speakOnce(text,lang){
+  return new Promise(res=>{if(!TTS)return res();const u=new SpeechSynthesisUtterance(String(text));const v=pickVoice(lang);
+    if(v){u.voice=v;u.lang=v.lang}else if(lang)u.lang=lang;
+    u.rate=S.listen.rate||1;u.onend=u.onerror=()=>res();speechSynthesis.speak(u)});
+}
+const speechChunks=t=>{const out=[];let c="";for(const x of (String(t).match(/[^.!?\n]+[.!?]*\s*/g)||[String(t)])){if(c&&(c+x).length>180){out.push(c.trim());c=x}else c+=x}if(c.trim())out.push(c.trim());return out};
+const showPlayer=on=>{const p=$("#player");if(p)p.hidden=!on};
+function stopListen(keepPlayer){
+  LS.run++;LS.paused=false;
+  if(TTS)speechSynthesis.cancel();
+  if(rec){try{rec.abort()}catch(e){}}
+  if(!keepPlayer)showPlayer(false);
+}
+async function runLoop(my){
+  while(LS.i<LS.items.length&&LS.run===my&&!LS.paused){
+    const it=LS.items[LS.i];$("#pl").textContent=`🔊 ${it.label} (${LS.i+1}/${LS.items.length})`;
+    await speakOnce(it.text,ttsLang());
+    if(LS.run!==my||LS.paused)return;LS.i++;
+  }
+  if(LS.run===my&&!LS.paused)showPlayer(false);
+}
+function playItems(items){
+  if(!TTS)return toast("Reading aloud isn’t supported in this browser.");
+  stopListen(true);LS.items=items.flatMap(it=>speechChunks(it.text).map(t=>({label:it.label,text:t})));
+  if(!LS.items.length)return toast("There’s nothing to read here yet.");
+  LS.i=0;$("#ppp").textContent="⏸";$("#ppp").setAttribute("aria-label","Pause");showPlayer(true);runLoop(++LS.run);
+}
+const notesItems=n=>[{label:"Summary",text:n.summary||""},{label:"Key concepts",text:(n.concepts||[]).map(c=>`${c.term}. ${c.explanation}`).join("\n")},{label:"Vocabulary",text:(n.vocab||[]).map(v=>`${v.word}. ${v.definition}`).join("\n")},{label:"Examples",text:(n.examples||[]).join("\n")}].filter(x=>x.text);
+$("#ppp").onclick=()=>{
+  if(LS.paused){LS.paused=false;$("#ppp").textContent="⏸";$("#ppp").setAttribute("aria-label","Pause");runLoop(++LS.run)}
+  else{LS.paused=true;LS.run++;speechSynthesis.cancel();$("#ppp").textContent="▶";$("#ppp").setAttribute("aria-label","Play")}
+};
+$("#pnx").onclick=()=>{const lab=LS.items[LS.i]?.label;let j=LS.i;while(j<LS.items.length&&LS.items[j].label===lab)j++;LS.i=j;LS.paused=false;$("#ppp").textContent="⏸";speechSynthesis.cancel();runLoop(++LS.run)};
+$("#psp").onclick=()=>stopListen();
+function dictate(ta,btn,idle="🎤 Dictate",busy="⏹ Stop dictating"){
+  if(!SR)return toast("Dictation isn’t supported in this browser. Chrome, Edge and Safari support it.");
+  if(rec){try{rec.stop()}catch(e){}return}
+  const r=new SR();rec=r;r.lang=S.listen.dlang||cur?.dialogues?.lang||navigator.language||"en-US";r.continuous=true;r.interimResults=true;
+  const base=ta.value?ta.value.replace(/\s*$/," "):"";let fin="";
+  r.onresult=e=>{let tmp="";for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript+" ";else tmp+=x[0].transcript}ta.value=(base+fin+tmp).slice(0,ta.maxLength>0?ta.maxLength:1000)};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("Microphone access is blocked. Allow it in your browser settings to dictate.");else if(e.error!=="no-speech"&&e.error!=="aborted")toast("Dictation problem: "+e.error)};
+  r.onend=()=>{if(rec===r)rec=null;btn.textContent=idle;btn.setAttribute("aria-pressed","false")};
+  btn.textContent=busy;btn.setAttribute("aria-pressed","true");
+  try{r.start()}catch(e){rec=null;btn.textContent=idle}
+}
+if(SR){$("#mic2").hidden=false;$("#mic2").onclick=()=>dictate($("#q"),$("#mic2"),"🎤","⏹")}
 
 const chats={};let picked="",thinking=false;
 function chip(){
