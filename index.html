@@ -118,7 +118,7 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 <a href="#app" class="skip">Skip to main content</a>
 <header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
-<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst" hidden>📲 Install app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
+<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst">📲 Get the app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
 <div id="player" role="region" aria-label="Audio player" hidden><span id="pl">Reading…</span><button class="alt" id="ppp" aria-label="Pause">⏸</button><button class="alt" id="pnx" aria-label="Next section">⏭</button><button class="alt" id="psp" aria-label="Stop">⏹</button></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
@@ -841,8 +841,38 @@ $("#trs").onclick=()=>{T.end=null;T.mode="focus";T.left=T.len*60;tdraw()};
 $("#tlen").onclick=()=>{T.len=T.len===25?50:T.len===50?15:25;if(!T.end&&T.mode==="focus")T.left=T.len*60;tdraw()};
 tdraw();
 let installEv=null;
-addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e;$("#inst").hidden=false});
-$("#inst").onclick=async()=>{if(!installEv)return;installEv.prompt();await installEv.userChoice;installEv=null;$("#inst").hidden=true};
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e});
+const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+function installPlatform(ua=navigator.userAgent,touch=navigator.maxTouchPoints){
+  if(/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&touch>1))return"ios";
+  if(/Android/.test(ua))return"android";
+  if(/Firefox/.test(ua))return"firefox";
+  return"desktop";
+}
+function installSteps(pf,canPrompt){
+  const L={
+   ios:["Open this website in <b>Safari</b> (it won’t work from inside another app).","Tap the <b>Share</b> button (a square with an arrow pointing up).","Scroll down and tap <b>Add to Home Screen</b>.","Tap <b>Add</b>. The StudySpark icon now appears on your home screen."],
+   android:canPrompt?["Tap <b>Install now</b> below.","Confirm by tapping <b>Install</b>. The StudySpark icon appears on your home screen."]:["Open this website in <b>Chrome</b>.","Tap the <b>⋮</b> menu in the top corner.","Tap <b>Install app</b> (or <b>Add to Home screen</b>).","Confirm. The StudySpark icon appears on your home screen."],
+   desktop:canPrompt?["Click <b>Install now</b> below.","Confirm by clicking <b>Install</b>. StudySpark opens in its own window."]:["Look for the install icon (a small screen with a down arrow) at the right end of the address bar, or open the browser menu and choose <b>Install StudySpark</b>.","Confirm. StudySpark opens in its own window."],
+   firefox:["Firefox on computers can’t install web apps. Use <b>Chrome</b> or <b>Edge</b> to install StudySpark, or just keep using it in the browser."]}
+  return L[pf];
+}
+$("#inst").onclick=()=>{
+  const old=$("#sm");if(old)old.remove();
+  const pf=installPlatform(),steps=installSteps(pf,!!installEv);
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Get the app");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📲 Get the app</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <p class="mute">Add StudySpark to your ${pf==="ios"||pf==="android"?"home screen":"computer"} so it opens like a normal app, full screen with its own icon.</p>
+  ${isStandalone()?"<p>✅ You’re already using the installed app.</p>":`<ol>${steps.map(x=>`<li>${x}</li>`).join("")}</ol>${installEv?'<p><button id="inow">Install now</button></p>':""}`}
+  <h3>Good to know</h3><ul class="mute"><li>Sets you’ve opened while online still work with no internet, including flashcards and quizzes.</li><li>Anything that uses the AI (making sets, the tutor, written-answer checks) or photos needs internet.</li><li>It stays signed in, and updates itself when you open it online.</li><li>Each device installs separately.</li></ul></div>`;
+  m.onclick=async e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();
+    if(e.target.id==="inow"&&installEv){installEv.prompt();await installEv.userChoice.catch(()=>{});installEv=null;m.remove()}
+  };
+  document.body.appendChild(m);$("#sx").focus();
+};
+if(isStandalone())$("#inst").hidden=true;
+addEventListener("appinstalled",()=>{$("#inst").hidden=true;toast("StudySpark was added to your device.")});
 {const net=()=>{$("#offline").hidden=navigator.onLine};addEventListener("online",net);addEventListener("offline",net);net()}
 if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
