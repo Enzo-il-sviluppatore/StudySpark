@@ -116,6 +116,7 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 .ttlrow{display:flex;gap:8px;align-items:center}.ttlrow h2{margin:.5em 0;overflow-wrap:anywhere}.ttlrow button{padding:4px 9px}
 input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}mark{background:#fde68a;color:#1c2033;border-radius:3px;padding:0 2px}.snip{font-size:.82rem;margin:4px 0}
 .xp{float:right;padding:2px 8px;margin:0 0 4px 8px}
+.o{margin:1px 0 1px 12px}
 </style>
 </head>
 <body>
@@ -200,9 +201,9 @@ function openSettings(){
   <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
   <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
   ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
-  ${Object.values(Q).some(q=>q.cap)?`<h3>🤖 Today’s AI usage</h3>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"],["/explain","Explanations"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
-  <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information. Share links stop working when you delete a set or all your data.</p>
-  ${user?'<p><button class="alt" id="dl">⬇️ Download my data</button> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
+  ${Object.values(Q).some(q=>q.cap)?`<h3>🤖 Today’s AI usage</h3>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"],["/explain","Explanations"],["/readphoto","AI photo reading"],["/quizgen","Practice-question sets"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
+  <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information. Back up regularly: the backup file contains your notes. Share links stop working when you delete a set or all your data.</p>
+  ${user?'<p><button class="alt" id="dl">💾 Back up my data</button> <button class="alt" id="rs">⬆️ Restore from backup</button><input type="file" id="rsf" accept=".json,application/json" hidden aria-label="Choose a backup file"> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
   <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
   draw();
   if(typeof speechSynthesis!=="undefined")speechSynthesis.addEventListener("voiceschanged",()=>{if(m.isConnected)draw()},{once:true});
@@ -215,10 +216,12 @@ function openSettings(){
     else if(b.id==="tst")sfx.correct();
     else if(b.id==="tv"){stopListen();speakOnce("This is how your study notes will sound.")}
     else if(b.id==="dl")exportData();
+    else if(b.id==="rs")$("#rsf").click();
     else if(b.id==="del")wipeData(m);
     else if(b.id==="rst"){S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};persist();draw()}
   };
   m.onchange=e=>{const t=e.target;
+    if(t.id==="rsf"&&t.files[0]){restoreFile(t.files[0],m);return}
     if(t.dataset.c){const k=t.dataset.c;if(k.startsWith("t:"))S.types[k.slice(2)]=t.checked;else S[k]=t.checked;persist()}
     if(t.id==="vx"){S.listen={...S.listen,voice:t.value};persist()}if(t.id==="rt"){S.listen={...S.listen,rate:+t.value};persist()}if(t.id==="dl"){S.listen={...S.listen,dlang:t.value};persist()}if(t.id==="qn"){S.qn=+t.value;persist()}if(t.id==="vol"){S.vol=+t.value;persist()}};
 }
@@ -244,9 +247,84 @@ applySettings();
 $("#snd").onclick=()=>{S.sound=!S.sound;persist()};
 $("#gear").onclick=openSettings;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const m=$("#sm");m&&m.remove()}});
+/* ---------- Backup & restore ---------- */
+const BKs=(v,n)=>typeof v==="string"?v.slice(0,n):"",BKa=(v,n)=>Array.isArray(v)?v.slice(0,n):[],BKo=v=>v&&typeof v==="object"&&!Array.isArray(v)?v:null;
+function cleanQuizItem(q){
+  if(!q||typeof q!=="object"||typeof q.q!=="string")return null;
+  const type=q.type==="multi"||q.type==="written"?q.type:"mc",o={type,q:BKs(q.q,400),explain:BKs(q.explain,500)};
+  if(type==="written"){o.sample=BKs(q.sample,800);if(!o.sample)return null;o.keypoints=BKa(q.keypoints,6).map(x=>BKs(x,120));return o}
+  o.options=BKa(q.options,8).map(x=>BKs(x,200));if(o.options.length<2)return null;
+  if(type==="multi"){o.answers=BKa(q.answers,8).filter(k=>Number.isInteger(k)&&k>=0&&k<o.options.length);if(!o.answers.length)return null}
+  else{if(!Number.isInteger(q.answer)||q.answer<0||q.answer>=o.options.length)return null;o.answer=q.answer}
+  if(Array.isArray(q.why))o.why=q.why.slice(0,8).map(x=>BKs(x,300));
+  return o;
+}
+function cleanSet(x){
+  if(!x||typeof x!=="object"||typeof x.title!=="string")return null;
+  const m0=BKo(x.meta)||{},n0=BKo(x.notes)||{},v0=BKo(x.visuals),d0=BKo(x.dialogues),meta={scores:BKa(m0.scores,20).filter(z=>z&&Number.isFinite(+z.pct)).map(z=>({at:+z.at||0,pct:Math.max(0,Math.min(100,+z.pct))}))};
+  const L=BKo(m0.last);if(L&&Number.isFinite(+L.total)&&+L.total>0)meta.last={score:+L.score||0,total:+L.total,pct:+L.pct||0,missed:BKa(L.missed,300).filter(Number.isInteger),at:+L.at||0};
+  if(/^\d{4}-\d{2}-\d{2}$/.test(m0.learnBy||"")){meta.learnBy=m0.learnBy;meta.learnFrom=+m0.learnFrom||Date.now()}
+  if(typeof m0.subject==="string"&&m0.subject.trim())meta.subject=m0.subject.trim().slice(0,24);
+  const notes={summary:BKs(n0.summary,4000),concepts:BKa(n0.concepts,60).filter(BKo).map(c=>({term:BKs(c.term,200),explanation:BKs(c.explanation,900)})),vocab:BKa(n0.vocab,80).filter(BKo).map(c=>({word:BKs(c.word,200),definition:BKs(c.definition,900)})),examples:BKa(n0.examples,60).map(e=>BKs(e,600)),diagram:BKo(n0.diagram)};
+  const visuals=v0?{steps:BKo(v0.steps),compare:BKo(v0.compare),timeline:Array.isArray(v0.timeline)?v0.timeline.slice(0,20):null,images:BKa(v0.images,12).filter(i=>i&&typeof i.src==="string"&&i.src.startsWith("https://upload.wikimedia.org/")).map(i=>({src:i.src.slice(0,500),page:BKs(i.page,500).startsWith("https://commons.wikimedia.org/")?i.page.slice(0,500):"https://commons.wikimedia.org/",credit:BKs(i.credit,100),lic:BKs(i.lic,100),caption:BKs(i.caption,200)})),resolved:true}:null;
+  const dialogues=d0&&Array.isArray(d0.items)?{lang:BKs(d0.lang,12),items:d0.items.slice(0,6).filter(BKo).map(i=>({title:BKs(i.title,100),lines:BKa(i.lines,20).filter(BKo).map(l=>({speaker:BKs(l.speaker,40),text:BKs(l.text,400),translation:BKs(l.translation,400)}))}))}:null;
+  return JSON.parse(JSON.stringify({title:BKs(x.title,120).trim()||"Restored set",created:Number.isFinite(+x.created)&&+x.created>0?+x.created:Date.now(),text:BKs(x.text,60000),notes,
+    cards:BKa(x.cards,500).filter(c=>c&&typeof c.front==="string"&&typeof c.back==="string").map(c=>({front:c.front.slice(0,300),back:c.back.slice(0,500),box:Math.max(0,Math.min(4,+c.box||0)),...(+c.due>0?{due:+c.due}:{})})),
+    quiz:BKa(x.quiz,300).map(cleanQuizItem).filter(Boolean),lastScore:x.lastScore==null||!Number.isFinite(+x.lastScore)?null:+x.lastScore,meta,visuals,dialogues}));
+}
+function cleanSettings(o){
+  o=BKo(o)||{};const d={...DEF,types:{...DEF.types},listen:{...DEF.listen}};
+  const pick=(k,list)=>{if(list.includes(o[k]))d[k]=o[k]};
+  pick("theme",["auto","light","dark","contrast"]);pick("palette",Object.keys(PALETTES));pick("bg",["glow","aurora","stars","dots","plain"]);pick("font",["system","rounded","serif","dyslexic","hyper"]);pick("size",["normal","large","xl"]);pick("anim",["auto","full","reduced","off"]);pick("qn",[0,5,10,15,20]);
+  for(const k of["sound","shuffleQ","shuffleO","why"])if(typeof o[k]==="boolean")d[k]=o[k];
+  if(Number.isFinite(+o.vol))d.vol=Math.max(.1,Math.min(1,+o.vol));
+  const t=BKo(o.types)||{};for(const k of["mc","multi","written"])if(typeof t[k]==="boolean")d.types[k]=t[k];
+  const l=BKo(o.listen)||{};if(Number.isFinite(+l.rate))d.listen.rate=Math.max(.6,Math.min(1.5,+l.rate));d.listen.voice=BKs(l.voice,120);d.listen.dlang=["","en-US","en-GB","es-ES","fr-FR","de-DE","it-IT","pt-BR","nl-NL"].includes(l.dlang)?l.dlang:"";
+  return d;
+}
+function cleanStats(o){
+  o=BKo(o)||{};const n={},got={};
+  for(const[k,v]of Object.entries(BKo(o.n)||{}))if(/^\w{1,20}$/.test(k)&&Number.isFinite(+v))n[k]=Math.max(0,Math.min(1e6,+v));
+  for(const[k,v]of Object.entries(BKo(o.got)||{}))if(BADGES.some(b=>b.id===k)&&Number.isFinite(+v))got[k]=+v;
+  return{days:BKa(o.days,400).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)),n,got,best:Math.max(0,Math.min(1000,+o.best||0))};
+}
+const buildBackup=()=>({app:"StudySpark",version:1,exported:new Date().toISOString(),settings:S,stats:ST,sets:sets.map(cleanSet).filter(Boolean)});
 function exportData(){
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({exported:new Date().toISOString(),settings:S,stats:ST,sets:sets.map(({_h,_hk,...r})=>r)},null,2)],{type:"application/json"}));
-  a.download="studyspark-data.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(buildBackup(),null,2)],{type:"application/json"}));
+  a.download="studyspark-backup-"+dstr()+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+async function restoreFile(f,parent){
+  if(parent)parent.remove();
+  if(!user)return toast("Sign in to restore a backup.");
+  if(f.size>25*1048576)return toast("That file is too large to be a StudySpark backup.");
+  let o;try{o=JSON.parse(await f.text())}catch(e){return toast("That file isn’t a valid backup. It couldn’t be read.")}
+  if(!BKo(o)||!Array.isArray(o.sets)||(o.app&&o.app!=="StudySpark"))return toast("That file doesn’t look like a StudySpark backup.");
+  const all=o.sets.slice(0,200).map(cleanSet).filter(Boolean).filter(x=>JSON.stringify(x).length<900000);
+  const have=new Set(sets.map(x=>x.title+"|"+x.created)),fresh=all.filter(x=>!have.has(x.title+"|"+x.created));
+  const hasS=!!BKo(o.settings),hasT=!!BKo(o.stats);
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Restore from backup");
+  const old=$("#sm");if(old)old.remove();
+  const chk=(id,l)=>`<label class="row"><span>${l}</span><input type="checkbox" id="${id}"></label>`;
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⬆️ Restore from backup</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <p>${o.exported?`Backup made ${esc(new Date(o.exported).toLocaleDateString())}. `:""}It has <b>${all.length}</b> set${all.length===1?"":"s"}: <b>${fresh.length}</b> new, ${all.length-fresh.length} already in your library (skipped).</p>
+  <p class="mute">Restoring only adds sets. It never deletes or replaces anything you have now.</p>${hasS?chk("rS","Also restore my settings"):""}${hasT?chk("rT","Also merge my streak and badges"):""}
+  <p><button id="go2" ${fresh.length||hasS||hasT?"":"disabled"}>Restore</button> <span id="rp" class="mute"></span></p></div>`;
+  m.onclick=async e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();
+    if(e.target.id!=="go2")return;
+    const b=e.target;b.disabled=true;let ok=0,bad=0;const added=[];
+    for(const x of fresh){
+      $("#rp").textContent=`Restoring ${ok+bad+1} of ${fresh.length}…`;
+      try{const ref=await addDoc(setsCol(),x);added.push({id:ref.id,...x});ok++}catch(err){bad++}
+    }
+    sets=[...added,...sets].sort((p,q)=>q.created-p.created);
+    if($("#rS")?.checked){S=cleanSettings(o.settings);persist()}
+    if($("#rT")?.checked){const t=cleanStats(o.stats),n={};for(const k of new Set([...Object.keys(ST.n),...Object.keys(t.n)]))n[k]=Math.max(ST.n[k]||0,t.n[k]||0);
+      const got={...t.got};for(const k in ST.got)got[k]=Math.min(got[k]||Infinity,ST.got[k]);
+      ST={days:[...new Set([...ST.days,...t.days])].sort().slice(-400),n,got,best:Math.max(ST.best||0,t.best)};saveStats();renderStreak()}
+    m.remove();toast(`Restored ${ok} set${ok===1?"":"s"}${bad?` (${bad} couldn’t be saved)`:""}.`);home();
+  };
+  document.body.appendChild(m);$("#sx").focus();
 }
 async function wipeData(m){
   if(!confirm("Delete ALL your study sets and saved settings? This cannot be undone."))return;
@@ -355,7 +433,7 @@ function openSubject(){
 function home(){stopListen();cur=null;renderSide();
   app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
-  <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files</span> <span class="mute">Photo language:</span> ${olangSel()}</p>
+  <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
   <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>`;
@@ -380,8 +458,12 @@ async function readPptx(buf){
 async function extract(f){
   const isImg=IMG_RE.test(f.name);
   if(!isImg&&!/\.(txt|md|pdf|pptx)$/i.test(f.name))throw new Error("only .txt, .md, .pdf, .pptx files and photos (.jpg, .png, .webp) are allowed.");
-  if(f.size>(isImg?12:5)*1024*1024)throw new Error(`file is over ${isImg?12:5} MB.`);
+  if(f.size>10*1024*1024)throw new Error("file is over 10 MB.");
   if(isImg){
+    if(ocrMode==="ai"&&user){
+      try{const t=await aiReadPhoto(f);if(t.includes("[?]"))toast(`${f.name}: some words were unclear and are marked [?]. Please check them before generating.`);return t}
+      catch(e){toast(`${f.name}: ${e.message} Using the in-browser reader instead.`)}
+    }
     const cv=await prepImage(f),w=await getOcr();ocrName=f.name;
     const{data}=await w.recognize(cv),t=tidyOcr(data.text);
     if(t.replace(/\s/g,"").length<30)throw new Error("couldn’t read enough text. Try a sharper, well-lit, straight-on photo.");
@@ -427,7 +509,7 @@ async function readFile(){
   if(!$("#title").value)$("#title").value=(fs.length>1?base+" + "+(fs.length-1)+" more":base).slice(0,60);
   $("#st").textContent=`Loaded ${$("#txt").value.length.toLocaleString()} characters from ${fs.length} file${fs.length>1?"s":""}.`+([...fs].some(x=>IMG_RE.test(x.name))?" Photos can have reading mistakes, so check the text below.":"");
 }
-const Q={},QL={"/generate":["generation","generations"],"/chat":["message","messages"],"/grade":["check","checks"],"/explain":["explanation","explanations"]};
+const Q={},QL={"/generate":["generation","generations"],"/chat":["message","messages"],"/grade":["check","checks"],"/explain":["explanation","explanations"],"/readphoto":["photo read","photo reads"],"/quizgen":["question set","question sets"]};
 function renderQuota(){
   document.querySelectorAll(".qleft").forEach(el=>{
     const q=Q[el.dataset.p],lab=QL[el.dataset.p];if(!q||q.left==null){el.textContent="";return}
@@ -727,7 +809,7 @@ function mergeInto(c,g,text){
 }
 function addTab(p){
   p.innerHTML=`<div class="card hero"><h3>➕ Add more notes to this set</h3><p class="mute">Upload more files or paste more text. New flashcards, quiz questions, concepts and vocabulary are added to this set. Nothing is removed.</p>
-  <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.pptx,image/*"> <span class="mute">files or photos · up to 10</span> <span class="mute">Photo language:</span> ${olangSel()}</p>
+  <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.pptx,image/*"> <span class="mute">files or photos · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
   <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>`;
   renderQuota();
   $("#afile").onchange=async()=>{const fs=$("#afile").files;if(!fs.length)return;const t=await readFiles(fs,$("#ast"));
@@ -1072,6 +1154,26 @@ const IMG_RE=/\.(jpe?g|png|webp|bmp|gif)$/i;
 const OLANGS=[["eng","English"],["spa","Spanish"],["fra","French"],["deu","German"],["ita","Italian"],["por","Portuguese"],["nld","Dutch"]];
 const olangSel=()=>`<select class="olang" aria-label="Language of the text in photos">${OLANGS.map(([v,l])=>`<option value="${v}" ${ocrLang===v?"selected":""}>${l}</option>`).join("")}</select>`;
 document.addEventListener("change",e=>{if(e.target.classList?.contains("olang")){ocrLang=e.target.value;document.querySelectorAll(".olang").forEach(x=>x.value=ocrLang)}});
+let ocrMode="local";try{if(localStorage.getItem("ss_ocrmode")==="ai")ocrMode="ai"}catch(e){}
+const omodeSel=()=>`<select class="omode" aria-label="How photos are read"><option value="local" ${ocrMode==="local"?"selected":""}>Quick, in your browser</option><option value="ai" ${ocrMode==="ai"?"selected":""}>Better for handwriting (AI)</option></select>`;
+document.addEventListener("change",e=>{if(e.target.classList?.contains("omode")){ocrMode=e.target.value==="ai"?"ai":"local";try{localStorage.setItem("ss_ocrmode",ocrMode)}catch(x){}document.querySelectorAll(".omode").forEach(x=>x.value=ocrMode);if(ocrMode==="ai")toast("AI reading sends each photo to our AI service to be turned into text. It isn’t kept, and it uses one of your daily photo reads.")}});
+async function photoDataUrl(f){
+  const url=URL.createObjectURL(f);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("couldn’t open this image. Try a JPG or PNG."));i.src=url});
+    const k=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.round(img.naturalWidth*k),h=Math.round(img.naturalHeight*k);
+    const cv=document.createElement("canvas");cv.width=w;cv.height=h;const cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+    for(const q of [.85,.7,.55,.4]){const d=cv.toDataURL("image/jpeg",q);if(d.length<=3400000)return d}
+    throw new Error("the photo is too large to send. Try a smaller picture.");
+  }finally{URL.revokeObjectURL(url)}
+}
+async function aiReadPhoto(f){
+  if(ocrSt)ocrSt.textContent=`${f.name}: reading with AI…`;
+  const r=await ai("/readphoto",{image:await photoDataUrl(f)});
+  const t=String(r.text||"").replace(/\n{3,}/g,"\n\n").trim();
+  if(t.replace(/\s/g,"").length<20)throw new Error("I couldn’t find enough text in that photo.");
+  return t;
+}
 const loadTess=()=>tessP??=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";sc.onload=()=>res(window.Tesseract);sc.onerror=()=>{tessP=null;rej(new Error("couldn’t load the text reader. Check your internet connection."))};document.head.appendChild(sc)});
 async function closeOcr(){if(ocrW){try{await ocrW.terminate()}catch(e){}ocrW=null}}
 async function getOcr(){
@@ -1220,7 +1322,7 @@ function openPrivacy(){
   const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Privacy and terms");
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">🔒 Privacy &amp; terms</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
   <h3>What we keep</h3><p>When you sign in with Google, we receive your name, email and profile picture from Google. We show your name inside the app. We store your study sets (your notes text, the study materials made from them, flashcard and quiz progress), your settings, and your streak and badges, so they’re there when you come back.</p>
-  <h3>Who processes it</h3><ul><li><b>Google Firebase</b> stores your account and data.</li><li><b>An AI service (Groq)</b>, reached through our own server, receives the text of your notes when you make a set, your tutor questions, and your written quiz answers, so it can reply. Please don’t include private details such as addresses, phone numbers or health or school records.</li><li><b>Photos</b> of notes are read inside your browser. They aren’t uploaded.</li><li><b>Wikimedia Commons</b> receives search words (not your name) to find images. Fonts and code libraries load from public CDNs.</li><li><b>Dictation</b> uses your browser’s speech service. In Chrome and Edge your voice goes to Google or Microsoft while you dictate.</li></ul>
+  <h3>Who processes it</h3><ul><li><b>Google Firebase</b> stores your account and data.</li><li><b>An AI service (Groq)</b>, reached through our own server, receives the text of your notes when you make a set, your tutor questions, and your written quiz answers, so it can reply. Please don’t include private details such as addresses, phone numbers or health or school records.</li><li><b>Photos</b> of notes are read inside your browser by default and aren’t uploaded. If you choose “Better for handwriting (AI)”, each photo is sent to the AI service (Groq) to be turned into text. StudySpark doesn’t keep the photo, only the text.</li><li><b>Wikimedia Commons</b> receives search words (not your name) to find images. Fonts and code libraries load from public CDNs.</li><li><b>Dictation</b> uses your browser’s speech service. In Chrome and Edge your voice goes to Google or Microsoft while you dictate.</li></ul>
   <h3>Sharing</h3><p>If you create a share link, anyone who has the link can view a copy of that set’s study materials until it expires or you stop sharing. Original notes, scores and your email are not included.</p>
   <h3>Your choices</h3><p>In <b>⚙️ Settings → Your data</b> you can download your data, or delete all of it, including share links. You can also stop sharing a set at any time.</p>
   <h3>Using StudySpark</h3><ul><li>StudySpark is a study aid. AI-made content can be wrong, so check it against your own notes and your teacher.</li><li>Only upload notes you’re allowed to use. Don’t upload anything unlawful, harmful or private about other people.</li><li>Don’t use the tutor to get answers to graded work; it is designed to give hints.</li><li>The service is provided as is, may change or stop, and may have limits to keep it free.</li></ul>
@@ -1229,19 +1331,20 @@ function openPrivacy(){
 }
 $("#privacy").onclick=openPrivacy;
 /* ---------- Explain it differently ---------- */
-const XC={},XSTYLES=[["simpler","🧒 Simpler"],["analogy","🔗 Analogy"],["example","📌 Example"],["steps","🪜 Steps"],["memory","🧠 Memory trick"]];
+const XC={},XQ={},XSTYLES=[["simpler","🧒 Simpler"],["analogy","🔗 Analogy"],["example","📌 Example"],["steps","🪜 Steps"],["memory","🧠 Memory trick"]];
 const XTAG={simpler:"in simple words",analogy:"as an analogy",example:"example",steps:"step by step",memory:"memory trick"};
 function openExplain(item){
   if(!user)return toast("Sign in to use this.");
   stopListen();const old=$("#sm");if(old)old.remove();
-  const canAdd=!!(cur&&cur.id&&!cur.shared);let last=null,added=false;
+  const canAdd=!!(cur&&cur.id&&!cur.shared);let last=null,added=false,addedQ=false,genQ=null;
   const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Explain it differently");
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">💡 Explain it differently</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
   <div class="chip" style="--c:#b45309;margin:8px 0"><b>${esc(item.a)}</b>${item.b?`<br>${esc(item.b)}`:""}</div>
   <p class="mute">Pick a style:</p><div class="seg" role="group" aria-label="Explanation style">${XSTYLES.map(([k,l])=>`<button class="alt" data-x="${k}">${l}</button>`).join("")}</div>
   <div id="xo" aria-live="polite" style="margin-top:12px;white-space:pre-wrap"></div>
+  ${canAdd?'<hr><p><button class="alt" id="xq">📝 Make practice questions about this</button></p><div id="xqo" aria-live="polite"></div><p class="mute"><span class="qleft" data-p="/quizgen"></span></p>':""}
   <p class="mute"><span class="qleft" data-p="/explain"></span></p><p class="mute">AI-made. Check it against your notes.</p></div>`;
-  const close=()=>{stopListen();m.remove();if(added&&tab==="cards")study()};
+  const close=()=>{stopListen();m.remove();if((added&&tab==="cards")||(addedQ&&tab==="quiz"))study()};
   const show=(t,k)=>{
     last={k,t};const o=$("#xo");o.textContent=t;
     const b=(TTS?'<button class="alt" id="xr">🔊 Read aloud</button> ':"")+(canAdd?'<button class="alt" id="xa">➕ Add as flashcard</button>':"");
@@ -1254,6 +1357,18 @@ function openExplain(item){
     if(id==="xa"&&last){
       $("#xbar").outerHTML=`<div id="xf" style="white-space:normal"><label class="mute" for="xfa">Front of the card</label><input type="text" id="xfa" maxlength="300" value="${esc((item.a+" ("+XTAG[last.k]+")").slice(0,300))}"><label class="mute" for="xfb">Back of the card</label><textarea id="xfb" maxlength="500" style="min-height:100px">${esc(last.t.slice(0,500))}</textarea><p><button id="xs">Save flashcard</button> <button class="alt" id="xc">Cancel</button></p></div>`;
       $("#xfb").focus();return;
+    }
+    if(id==="xq"){
+      const key=item.a+"|"+(item.b||"");e.target.disabled=true;$("#xqo").textContent="Writing questions…";
+      try{const r=XQ[key]||(XQ[key]=(await ai("/quizgen",{item:{kind:item.kind,a:item.a,b:item.b||""},title:cur?.title||""})).quiz);genQ=r;
+        if(m.isConnected){$("#xqo").innerHTML=r.map((q,i)=>`<div class="item" style="white-space:normal;margin:10px 0"><b>${i+1}. ${esc(q.q)}</b>${q.type==="multi"?" <i>(select all that apply)</i>":""}${q.type==="written"?"":q.options.map((o,k)=>`<div class="o">${String.fromCharCode(65+k)}. ${esc(o)}</div>`).join("")}<details><summary>Show answer</summary>${q.type==="written"?esc(q.sample):q.type==="multi"?q.answers.map(k=>String.fromCharCode(65+k)).join(", "):String.fromCharCode(65+q.answer)}${q.explain?`<br><i>${esc(q.explain)}</i>`:""}</details></div>`).join("")+`<p><button id="xqa">➕ Add ${r.length} question${r.length===1?"":"s"} to my quiz</button></p>`}}
+      catch(x){if(m.isConnected)$("#xqo").textContent="";toast(x.message)}
+      if($("#xq"))$("#xq").disabled=false;return;
+    }
+    if(id==="xqa"&&genQ){
+      const have=new Set((cur.quiz||[]).map(q=>String(q.q).toLowerCase())),add=genQ.filter(q=>!have.has(String(q.q).toLowerCase()));
+      if(!add.length)return toast("Those questions are already in your quiz.");
+      cur.quiz=[...(cur.quiz||[]),...add];save({quiz:cur.quiz});markActive("edit");addedQ=true;e.target.disabled=true;e.target.textContent="✅ Added to your quiz";toast(`Added ${add.length} question${add.length===1?"":"s"} to your quiz.`);return;
     }
     if(id==="xc"){show(last.t,last.k);return}
     if(id==="xs"){
