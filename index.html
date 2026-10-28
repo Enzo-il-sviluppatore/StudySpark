@@ -117,13 +117,20 @@ h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block
 input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}mark{background:#fde68a;color:#1c2033;border-radius:3px;padding:0 2px}.snip{font-size:.82rem;margin:4px 0}
 .xp{float:right;padding:2px 8px;margin:0 0 4px 8px}
 .o{margin:1px 0 1px 12px}
+.timer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;text-align:left}.timer b{font-size:1.15rem}.trow{margin:0}
+.ib{padding:6px 9px;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:10px;transition:background .15s}.ib:hover{background:color-mix(in srgb,var(--brand) 13%,transparent);filter:none}
+.ficons{display:flex;gap:6px}.ficons .ib{flex:1;font-size:1rem}#moremenu{display:flex;flex-direction:column;gap:3px}
+.tools{display:flex;gap:6px;margin-top:12px}.ib2{padding:6px 12px}.tipline{margin:18px 0 4px}.tipline #tip{display:inline}
+.sec>summary,.sset>summary{cursor:pointer;font-weight:700}.sec>summary{margin-bottom:6px}.sset{border-top:1px solid var(--line);padding:2px 0}.sset>summary{color:var(--brand);padding:10px 0}
+details.card.hero>summary{cursor:pointer}details.card[open]>summary{margin-bottom:10px}
+.tabs{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:4px}.tabs button{flex:none}
 </style>
 </head>
 <body>
 <a href="#app" class="skip">Skip to main content</a>
 <header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
-<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" class="mute">🎯 Focus</span> <b id="tm">25:00</b><div class="trow"><button class="sl" id="tgo">▶</button><button class="sl" id="trs" title="Reset">↺</button><button class="sl" id="tlen" title="Focus length">25m</button></div></div><button class="sl" id="badges">🏅 Streak &amp; badges</button><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="gear" title="Settings">⚙️ Settings</button><button class="sl" id="inst">📲 Get the app</button><button class="sl" id="snd" title="Sound on/off">🔊 Sound on</button></div></aside><main id="app" tabindex="-1"></main></div>
+<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" title="Focus timer">🎯</span> <b id="tm">25:00</b><span class="trow"><button class="ib" id="tgo" aria-label="Start or pause the timer">▶</button><button class="ib" id="trs" title="Reset" aria-label="Reset the timer">↺</button><button class="ib" id="tlen" title="Focus length">25m</button></span></div><div class="ficons"><button class="ib" id="badges" title="Streak and badges" aria-label="Streak and badges">🏅</button><button class="ib" id="gear" title="Settings" aria-label="Settings">⚙️</button><button class="ib" id="snd" title="Sound on or off" aria-label="Sound">🔊</button><button class="ib" id="more" title="More" aria-label="More options" aria-expanded="false">⋯</button></div><div id="moremenu" hidden><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="inst">📲 Get the app</button></div></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
 <div id="player" role="region" aria-label="Audio player" hidden><span id="pl">Reading…</span><button class="alt" id="ppp" aria-label="Pause">⏸</button><button class="alt" id="pnx" aria-label="Next section">⏭</button><button class="alt" id="psp" aria-label="Stop">⏹</button></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
@@ -168,7 +175,7 @@ function applySettings(){
   const r=document.documentElement,dark=S.theme==="dark"||(S.theme==="auto"&&matchMedia("(prefers-color-scheme:dark)").matches),P=PALETTES[S.palette]||PALETTES.aurora;
   if(S.theme==="auto")r.removeAttribute("data-theme");else r.dataset.theme=S.theme;
   r.dataset.anim=S.anim;r.dataset.bg=S.bg;r.dataset.font=S.font;r.dataset.size=S.size;const br=S.theme==="contrast"?"#0000cc":P.b[dark?1:0];if(S.theme==="contrast")r.style.removeProperty("--brand");else r.style.setProperty("--brand",br);r.style.setProperty("--onb",crat("#ffffff",br)>=crat("#0b0d17",br)?"#ffffff":"#0b0d17");P.g.forEach((c,i)=>r.style.setProperty("--g"+(i+1),c));
-  const b=$("#snd");if(b)b.textContent=S.sound?"🔊 Sound on":"🔇 Sound off";
+  const b=$("#snd");if(b){b.textContent=S.sound?"🔊":"🔇";b.setAttribute("aria-label",S.sound?"Sound is on. Turn it off":"Sound is off. Turn it on");b.setAttribute("aria-pressed",String(!!S.sound))}
 }
 let ptimer;
 function persist(){
@@ -186,26 +193,26 @@ function openSettings(){
   const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Settings");document.body.appendChild(m);
   const seg=(key,opts)=>`<div class="seg">${opts.map(([v,l])=>`<button class="${S[key]===v?"on":"alt"}" data-k="${key}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const chk=(label,on,key)=>`<label class="row"><span>${label}</span><input type="checkbox" data-c="${key}" ${on?"checked":""}></label>`;
-  const draw=()=>{m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⚙️ Settings</h2><button class="alt" id="sx" aria-label="Close settings">✕</button></div>
-  <h3>🎨 Appearance</h3><div class="row"><span>Theme</span>${seg("theme",[["auto","Auto"],["light","☀️ Light"],["dark","🌙 Dark"],["contrast","◐ High contrast"]])}</div>
+  const draw=()=>{const prev=[...m.querySelectorAll("details")].map(d=>d.open);m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⚙️ Settings</h2><button class="alt" id="sx" aria-label="Close settings">✕</button></div>
+  <details open class="sset"><summary>🎨 Appearance</summary><div class="row"><span>Theme</span>${seg("theme",[["auto","Auto"],["light","☀️ Light"],["dark","🌙 Dark"],["contrast","◐ High contrast"]])}</div>
   <div class="row"><span>Colours</span><div class="seg">${Object.entries(PALETTES).map(([id,p])=>`<button class="sw ${S.palette===id?"on":""}" title="${p.n}" data-pal="${id}" style="background:linear-gradient(135deg,${p.g[0]},${p.g[1]},${p.g[2]})"></button>`).join("")}</div></div>
   <div class="row"><span>Background</span>${seg("bg",[["glow","✨ Glow"],["aurora","🌌 Aurora"],["stars","⭐ Stars"],["dots","⚪ Dots"],["plain","▫️ Plain"]])}</div>
   <div class="row"><span>Font</span>${seg("font",[["system","Standard"],["rounded","Rounded"],["serif","Serif"],["dyslexic","Dyslexia-friendly"],["hyper","Hyperlegible"]])}</div>
   <div class="row"><span>Text size</span>${seg("size",[["normal","Normal"],["large","Large"],["xl","Extra large"]])}</div>
-  <h3>🔊 Sound</h3>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
-  <h3>🔈 Listen &amp; dictate</h3>${typeof speechSynthesis==="undefined"?'<p class="mute">Reading aloud isn’t supported in this browser.</p>':`<div class="row"><span>Voice</span><select id="vx" aria-label="Voice"><option value="">Automatic</option>${speechSynthesis.getVoices().slice().sort((a,b)=>(a.lang+a.name).localeCompare(b.lang+b.name)).map(v=>`<option value="${esc(v.name)}" ${S.listen.voice===v.name?"selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select></div>
+  </details><details class="sset"><summary>🔊 Sound</summary>${chk("Sound effects",S.sound,"sound")}<div class="row"><span>Volume</span><span><input type="range" id="vol" min="0.1" max="1" step="0.05" value="${S.vol}"> <button class="alt" id="tst">Test</button></span></div>
+  </details><details class="sset"><summary>🔈 Listen &amp; dictate</summary>${typeof speechSynthesis==="undefined"?'<p class="mute">Reading aloud isn’t supported in this browser.</p>':`<div class="row"><span>Voice</span><select id="vx" aria-label="Voice"><option value="">Automatic</option>${speechSynthesis.getVoices().slice().sort((a,b)=>(a.lang+a.name).localeCompare(b.lang+b.name)).map(v=>`<option value="${esc(v.name)}" ${S.listen.voice===v.name?"selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select></div>
   <div class="row"><span>Speed</span><span><input type="range" id="rt" min="0.6" max="1.5" step="0.1" value="${S.listen.rate}" aria-label="Reading speed"> <button class="alt" id="tv">▶ Test</button></span></div>`}
   <div class="row"><span>Dictation language</span><select id="dl" aria-label="Dictation language"><option value="">Automatic</option>${[["en-US","English (US)"],["en-GB","English (UK)"],["es-ES","Spanish"],["fr-FR","French"],["de-DE","German"],["it-IT","Italian"],["pt-BR","Portuguese"],["nl-NL","Dutch"]].map(([v,l])=>`<option value="${v}" ${S.listen.dlang===v?"selected":""}>${l}</option>`).join("")}</select></div>
   <p class="mute">Voices depend on your device. Dictation uses your browser’s speech service: in Chrome and Edge your voice is sent to Google or Microsoft to be turned into text. It only listens while you press 🎤.</p>
-  <h3>✨ Animations</h3><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
-  <h3>📝 Quizzes</h3>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
+  </details><details class="sset"><summary>✨ Animations</summary><div class="row"><span>Motion</span>${seg("anim",[["auto","Match device"],["full","Full"],["reduced","Reduced"],["off","Off"]])}</div>
+  </details><details class="sset"><summary>📝 Quizzes</summary>${chk("Multiple choice",S.types.mc,"t:mc")}${chk("Select all that apply",S.types.multi,"t:multi")}${chk("Written answers",S.types.written,"t:written")}
   <div class="row"><span>Questions per quiz</span><select id="qn">${[[0,"All"],[5,"5"],[10,"10"],[15,"15"],[20,"20"]].map(([v,l])=>`<option value="${v}" ${S.qn===v?"selected":""}>${l}</option>`).join("")}</select></div>
   ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
-  ${Object.values(Q).some(q=>q.cap)?`<h3>🤖 Today’s AI usage</h3>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"],["/explain","Explanations"],["/readphoto","AI photo reading"],["/quizgen","Practice-question sets"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
-  <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information. Back up regularly: the backup file contains your notes. Share links stop working when you delete a set or all your data.</p>
+  ${Object.values(Q).some(q=>q.cap)?`</details><details class="sset"><summary>🤖 Today’s AI usage</summary>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"],["/explain","Explanations"],["/readphoto","AI photo reading"],["/quizgen","Practice-question sets"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
+  </details><details class="sset"><summary>🔒 Your data</summary><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information. Back up regularly: the backup file contains your notes. Share links stop working when you delete a set or all your data.</p>
   ${user?`${chk("Remind me to back up every month",S.backupRemind!==false,"backupRemind")}<p class="mute">Last backup on this device: ${lastBackup()?esc(new Date(lastBackup()).toLocaleDateString()):"never"}.</p>`:""}
   ${user?'<p><button class="alt" id="bk">💾 Back up my data</button> <button class="alt" id="rs">⬆️ Restore from backup</button><input type="file" id="rsf" accept=".json,application/json" hidden aria-label="Choose a backup file"> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
-  <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
+  <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></details></div>`;if(prev.length)m.querySelectorAll("details").forEach((d,i)=>d.open=!!prev[i])};
   draw();
   if(typeof speechSynthesis!=="undefined")speechSynthesis.addEventListener("voiceschanged",()=>{if(m.isConnected)draw()},{once:true});
   if(user)loadUsage().then(()=>{if(m.isConnected)draw()});
@@ -413,6 +420,19 @@ function drawLib(){
     try{const sd=sets.find(x=>x.id===b.dataset.del);if(sd?.meta?.shareId)await deleteDoc(doc(db,"shared",sd.meta.shareId)).catch(()=>{});await deleteDoc(doc(setsCol(),b.dataset.del));sets=sets.filter(x=>x.id!==b.dataset.del);if(libSub&&!subjects().includes(libSub))libSub="";home()}catch(e){toast("Delete failed: "+e.code)}});
 }
 const subjBtn=()=>cur.shared?"":`<button class="alt" id="sj" aria-label="Set subject">📁 ${esc(subjOf(cur)||"Add subject")}</button>`;
+function renameSet(){const t=(prompt("Rename this set (up to 60 characters):",cur.title)||"").trim().slice(0,60);if(!t||t===cur.title)return;cur.title=t;save({title:t});study()}
+function openSetMenu(){
+  if(!cur)return;
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Set options");
+  const own=!cur.shared,it=(id,l)=>`<button class="alt" id="${id}" style="width:100%;text-align:left;margin:4px 0">${l}</button>`;
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⋯ Set options</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>${own?it("so-rn","✏️ Rename set")+it("so-sj","📁 Subject"+(subjOf(cur)?": "+esc(subjOf(cur)):""))+it("so-sh","🔗 Share"):""}${it("so-pg","🖨️ Study guide (PDF)")}</div>`;
+  m.onclick=e=>{
+    const id=e.target.id;if(e.target===m||id==="sx")return m.remove();
+    const go={"so-rn":renameSet,"so-sj":openSubject,"so-sh":openShare,"so-pg":openGuide}[id];if(!go)return;m.remove();go();
+  };
+  document.body.appendChild(m);$("#sx").focus();
+}
 function openSubject(){
   if(!cur||cur.shared)return;
   const old=$("#sm");if(old)old.remove();
@@ -445,21 +465,20 @@ function backupDue(){
 }
 function backupCard(){
   const d=backupDue();if(!d)return"";
-  return `<div class="card sec" style="--c:#0369a1"><h3>💾 Time for a backup</h3><p>${d.days==null?"You haven’t made a backup yet.":`Your last backup was ${d.days} days ago.`} A backup file keeps your sets safe if something goes wrong. It only takes a few seconds.</p><p><button id="bkn">⬇️ Back up now</button> <button class="alt" id="bks">Remind me in a week</button> <button class="alt" id="bkx">Stop reminding me</button></p></div>`;
+  return `<div class="card sec" style="--c:#0369a1"><h3>💾 Time for a backup</h3><p>${d.days==null?"You haven’t made a backup yet.":`Your last backup was ${d.days} days ago.`} It takes a few seconds and keeps your sets safe. (You can turn these reminders off in Settings.)</p><p><button id="bkn">⬇️ Back up now</button> <button class="alt" id="bks">Remind me later</button></p></div>`;
 }
 function wireBackup(){
   if($("#bkn"))$("#bkn").onclick=()=>{exportData();toast("Backup saved. Keep the file somewhere safe.");home()};
   if($("#bks"))$("#bks").onclick=()=>{try{localStorage.setItem("ss_bksnooze_"+user.uid,String(Date.now()+7*864e5))}catch(e){}home()};
-  if($("#bkx"))$("#bkx").onclick=()=>{S.backupRemind=false;persist();toast("Reminders turned off. You can turn them back on in Settings.");home()};
 }
 
 function home(){stopListen();cur=null;renderSide();
-  app.innerHTML=`${planHtml()}${backupCard()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
+  app.innerHTML=`${planHtml()}${backupCard()}<details class="card hero" ${sets.length?"":"open"}><summary><b style="font-size:1.15rem">✨ New study set</b></summary>
   <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
-  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
-  <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>`;
+  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></details>
+  <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>${tipCard()}`;
   $("#file").onchange=readFile;
   $("#go").onclick=generate;renderQuota();wireTips();wireBackup();
   app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{const[id,t]=b.dataset.plan.split(":");cur=sets.find(x=>x.id===id);tab=t;study()});
@@ -564,14 +583,13 @@ async function generate(){
 
 /* ---------- Study view ---------- */
 function study(){stopListen();renderSide();
-  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<div class="ttlrow"><h2>${esc(cur.title)}</h2>${cur.shared?"":'<button class="alt" id="rn" aria-label="Rename this set" title="Rename">✏️</button>'}${subjBtn()}</div>${cur.shared?sharedBanner():""}<p style="margin:-6px 0 10px">${learnLine(cur).replace("<br>","")}</p>
+  app.innerHTML=`${cur.shared&&!user?"":'<p><button class="alt" id="back">← Library</button></p>'}<div class="ttlrow"><h2>${esc(cur.title)}</h2><button class="alt" id="opt" aria-label="Set options" title="Set options">⋯</button></div>${cur.shared?sharedBanner():""}${(()=>{const ml=[subjOf(cur)?"📁 "+esc(subjOf(cur)):"",learnLine(cur).replace("<br>","")].filter(Boolean).join(" · ");return ml?`<p class="mute" style="margin:-6px 0 10px">${ml}</p>`:""})()}
   <div class="tabs">${["notes","visuals","cards","quiz",...(cur.dialogues?.items?.length?["talk"]:[]),...(cur.shared?[]:["progress","edit","source","add"])].map(t=>`<button class="${t===tab?"on":"alt"}" data-t="${t}">${{notes:"📖 Study notes",cards:"🃏 Flashcards",quiz:"📝 Quiz",visuals:"🖼️ Visuals",talk:"💬 Conversations",progress:"📊 Progress",edit:"✏️ Edit",source:"📄 My notes",add:"➕ Add notes"}[t]}</button>`).join("")}</div><div id="pane"></div>`;
   if($("#back"))$("#back").onclick=()=>{if(SHARE_ID){SHARE_ID=null;history.replaceState(null,"",location.pathname)}home()};
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;study()});
   ({notes,visuals,cards,quiz,talk,progress,edit:editTab,source,add:addTab})[tab]($("#pane"));
   if($("#cpy"))$("#cpy").onclick=copyShared;
-  if($("#sj"))$("#sj").onclick=openSubject;
-  if($("#rn"))$("#rn").onclick=()=>{const t=(prompt("Rename this set (up to 60 characters):",cur.title)||"").trim().slice(0,60);if(!t||t===cur.title)return;cur.title=t;save({title:t});study()};
+  if($("#opt"))$("#opt").onclick=openSetMenu;
   if(nav){const e=document.getElementById(nav);nav=null;if(e){e.classList.add("hl");e.scrollIntoView({block:"center",behavior:"smooth"})}}
 }
 const save=p=>{if(!user||!cur||cur.shared||!cur.id)return Promise.resolve();return setDoc(doc(setsCol(),cur.id),p,{merge:true}).catch(e=>toast("Save failed: "+e.code))};
@@ -580,12 +598,14 @@ function notes(p){
   const n=cur.notes||{};
   const sec=(c,h,b)=>`<div class="card sec" style="--c:${c}"><h3>${h}</h3>${b}</div>`;
   const chips=(a,k,v,pre)=>`<div class="grid">${(a||[]).map((x,i)=>`<div class="chip" id="${pre}${i}" style="--c:${COL[i%COL.length]}">${user?`<button class="alt xp" data-xp="${pre}${i}" aria-label="Explain ${esc(x[k])} differently" title="Explain differently">💡</button>`:""}<b>${esc(x[k])}</b><br>${esc(x[v])}</div>`).join("")}</div>`;
-  p.innerHTML='<p class="mute">AI-generated study materials can contain mistakes. Check them against your notes, and fix anything wrong in the ✏️ Edit tab.</p>'+sec("#5b4bdb","📝 Summary",`<p>${esc(n.summary)}</p>`)
+  const det=(c,h,b)=>`<details class="card sec" style="--c:${c}"><summary>${h}</summary>${b}</details>`;
+  p.innerHTML=sec("#5b4bdb","📝 Summary",`<p>${esc(n.summary)}</p>`)
    +sec("#0ea5e9","🗺️ Interactive concept map",'<div id="map"></div>')
    +sec("#f59e0b","💡 Key concepts",chips(n.concepts,"term","explanation","c-"))
-   +sec("#10b981","📖 Vocabulary",chips(n.vocab,"word","definition","v-"))
-   +sec("#ec4899","🔍 Examples",`<ul>${(n.examples||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`);
-  const pg=document.createElement("p");pg.innerHTML=(TTS?'<button class="alt" id="ls">🔊 Listen</button> ':"")+'<button class="alt" id="pg">🖨️ Study guide (PDF)</button>';p.prepend(pg);$("#pg").onclick=openGuide;if($("#ls"))$("#ls").onclick=()=>playItems(notesItems(n));
+   +((n.vocab||[]).length?det("#10b981","📖 Vocabulary ("+n.vocab.length+")",chips(n.vocab,"word","definition","v-")):"")
+   +((n.examples||[]).length?det("#ec4899","🔍 Examples ("+n.examples.length+")",`<ul>${n.examples.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"")
+   +'<p class="mute" style="font-size:.8rem">AI-made, so check it against your notes. Fix mistakes under ✏️ Edit (sidebar, More).</p>';
+  if(TTS){const pg=document.createElement("p");pg.innerHTML='<button class="alt" id="ls">🔊 Listen</button>';p.prepend(pg);$("#ls").onclick=()=>playItems(notesItems(n))}
   p.querySelectorAll("[data-xp]").forEach(b=>b.onclick=()=>{const[kd,ix]=b.dataset.xp.split("-"),x=kd==="c"?n.concepts[+ix]:n.vocab[+ix];openExplain(kd==="c"?{kind:"concept",a:x.term,b:x.explanation}:{kind:"vocab",a:x.word,b:x.definition})});
   const d=mapData(n);if(d.nodes.length>1)conceptMap($("#map"),d);else $("#map").parentElement.hidden=true;
 }
@@ -668,8 +688,9 @@ function cards(p){
     }
     const c=all[queue[0]];
     p.innerHTML=`<p class="mute">${queue.length} left · ${all.filter(isDue).length} due · mastered ${all.filter(x=>x.box>=3).length} of ${all.length}</p><div class="bar"><i style="width:${total?100*(total-queue.length)/total:0}%"></i></div>
-    <div class="card fc ${flip?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flashcard. Press Enter to flip.">${esc(flip?c.back:c.front)}</div><p class="mute">Tap the card to flip. “Got it” spaces it further out; “Still learning” brings it back soon.</p>
-    <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button> <button class="alt" id="csv">⬇️ CSV</button>${user?' <button class="alt" id="xpl">💡 Explain differently</button>':""}${TTS?` <button class="alt" id="rd">🔊 Read</button> <button class="alt" id="hf">${hfOn?"⏹ Stop hands-free":"🎧 Hands-free"}</button>`:""}`;
+    <div class="card fc ${flip?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flashcard. Press Enter to flip.">${esc(flip?c.back:c.front)}</div><p class="mute" style="margin:6px 0">Tap the card to flip</p>
+    <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button>
+    <div class="tools">${TTS?`<button class="alt ib2" id="rd" title="Read this side aloud" aria-label="Read this side aloud">🔊</button><button class="alt ib2" id="hf" title="${hfOn?"Stop hands-free":"Hands-free mode"}" aria-label="${hfOn?"Stop hands-free":"Hands-free mode"}">${hfOn?"⏹":"🎧"}</button>`:""}${user?'<button class="alt ib2" id="xpl" title="Explain differently" aria-label="Explain differently">💡</button>':""}<button class="alt ib2" id="csv" title="Export flashcards as CSV" aria-label="Export flashcards as CSV">⬇️</button></div>`;
     $("#fc").onclick=()=>{hfOn=false;stopListen();sfx.flip();flip=!flip;draw()};$("#fc").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#fc").click()}};$("#fc").focus({preventScroll:true});
     if($("#rd")){$("#rd").onclick=()=>{stopListen();speakOnce(flip?c.back:c.front,ttsLang())};$("#hf").onclick=()=>{if(hfOn){hfOn=false;stopListen();draw()}else runHF()}}
     if($("#xpl"))$("#xpl").onclick=()=>openExplain({kind:"card",a:c.front,b:c.back});$("#csv").onclick=csv;
@@ -775,7 +796,7 @@ function quiz(p){
       let g=null;try{g=await ai("/grade",{q:q.q,sample:q.sample,keypoints:q.keypoints||[],answer:a})}catch(e){}
       $("#wa").disabled=true;b.remove();
       const model=`<p><b>Model answer:</b> ${esc(q.sample)}</p>${(q.keypoints||[]).length?`<p>Key points: ${q.keypoints.map(esc).join(" · ")}</p>`:""}`;
-      if(g){g.score>=1?sfx.correct():sfx.wrong();$("#ex").innerHTML=`<p><b>${g.score>=1?"✅ Great answer":g.score>0?"🟡 Partly right":"❌ Not quite"}:</b> ${esc(g.feedback)}</p>`+model;finish(q,g.score)}
+      if(g&&typeof g.score==="number"&&isFinite(g.score)){g.score>=1?sfx.correct():sfx.wrong();$("#ex").innerHTML=`<p><b>${g.score>=1?"✅ Great answer":g.score>0?"🟡 Partly right":"❌ Not quite"}:</b> ${esc(g.feedback)}</p>`+model;finish(q,g.score)}
       else{$("#ex").innerHTML=model+'<p><b>The AI couldn’t grade this, so mark yourself:</b></p><button class="alt" data-sg="1">✅ Got it</button> <button class="alt" data-sg=".5">🟡 Partly</button> <button class="alt" data-sg="0">❌ Not yet</button>';
         p.querySelectorAll("[data-sg]").forEach(x=>x.onclick=()=>{const v=+x.dataset.sg;v>=1?sfx.correct():sfx.wrong();finish(q,v)})}
     };
@@ -922,14 +943,14 @@ const TIPS=[
  {k:"speak",t:"Speak the language out loud",d:"For language study, read dialogues aloud and answer in practice mode. Speaking helps recall more than reading."}];
 const tipHtml=k=>{const t=TIPS.find(x=>x.k===k);return t?`<p class="mute">💡 <b>${esc(t.t)}.</b> ${esc(t.d)}</p>`:""};
 let tipI=(new Date().getDate()*5)%TIPS.length;
-function showTip(){const el=$("#tip");if(!el)return;const t=TIPS[tipI];el.innerHTML=`<b>${esc(t.t)}</b><br>${esc(t.d)}`;el.style.animation="none";void el.offsetWidth;el.style.animation=""}
+function showTip(){const el=$("#tip");if(!el)return;const t=TIPS[tipI];el.innerHTML=`<b>💡 ${esc(t.t)}.</b> ${esc(t.d)}`;el.style.animation="none";void el.offsetWidth;el.style.animation=""}
 const nextTip=()=>{tipI=(tipI+1+Math.floor(Math.random()*(TIPS.length-1)))%TIPS.length;showTip()};
 const openTips=()=>{
   const old=$("#sm");if(old)old.remove();
   const m=document.createElement("div");m.id="sm";m.className="modal";
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📖 Study tips</h2><button class="alt" id="sx">✕</button></div>${TIPS.map((t,i)=>`<div class="chip" style="--c:${COL[i%COL.length]};margin:8px 0"><b>${esc(t.t)}</b><br>${esc(t.d)}</div>`).join("")}</div>`;
   m.onclick=e=>{if(e.target===m||e.target.id==="sx")m.remove()};document.body.appendChild(m)};
-const tipCard=()=>'<div class="card sec tipcard" style="--c:#f59e0b"><h3>💡 Study tip</h3><div id="tip" class="tip"></div><p><button class="alt" id="tipn">🔄 Next tip</button> <button class="alt" id="tips">📖 All study tips</button></p></div>';
+const tipCard=()=>'<p class="mute tipline"><span id="tip"></span> <button class="alt ib2" id="tipn" title="Next tip" aria-label="Next tip">🔄</button> <button class="alt ib2" id="tips" title="All study tips" aria-label="All study tips">📖</button></p>';
 const wireTips=()=>{const a=$("#tipn");if(!a)return;a.onclick=nextTip;$("#tips").onclick=openTips;showTip()};
 function countUp(el,to){
   if(!el)return;if(!animOK()||!window.requestAnimationFrame){el.textContent=to+"%";return}
@@ -939,16 +960,25 @@ function renderSide(){
   const n=$("#snav"),sh=!!cur?.shared;
   if(!user&&!sh){n.innerHTML='<p class="mute" style="padding:6px">Sign in to see your study sets.</p>';return}
   let k=0;const st=()=>`style="animation-delay:${Math.min(k++,14)*25}ms"`;
-  const TABS=[["notes","📖","Study notes"],["visuals","🖼️","Visuals"],["cards","🃏","Flashcards"],["quiz","📝","Quiz"],...(cur?.dialogues?.items?.length?[["talk","💬","Conversations"]]:[]),["progress","📊","Progress"],["edit","✏️","Edit cards & questions"],["source","📄","My notes"],["add","➕","Add notes"]];
-  const TB=sh?TABS.filter(t=>["notes","visuals","cards","quiz","talk"].includes(t[0])):TABS;
+  const P=[["notes","📖","Study notes"],["visuals","🖼️","Visuals"],["cards","🃏","Flashcards"],["quiz","📝","Quiz"],...(cur?.dialogues?.items?.length?[["talk","💬","Conversations"]]:[])];
+  const M=sh?[]:[["progress","📊","Progress"],["edit","✏️","Edit cards & questions"],["source","📄","My notes"],["add","➕","Add notes"]];
+  const showM=M.length>0&&(sideMore||M.some(t=>t[0]===tab));
+  const tb=([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()} ${tab===t?'aria-current="page"':""}>${i} ${l}</button>`;
+  const L=libraryList(),shown=sideAll?L:L.slice(0,5);
+  const sb=x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(short(x.title,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`};
   n.innerHTML=(user?`<button class="sl ${cur?"":"on"}" data-go="home" ${st()}>🏠 Library</button>`:"")
-   +(cur?`<div class="sh">${esc(short(cur.title,26))}</div>`+TB.map(([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()} ${tab===t?'aria-current="page"':""}>${i} ${l}</button>`).join("")+`<button class="sl" data-act="guide" ${st()}>🖨️ Study guide (PDF)</button>`+(sh?"":`<button class="sl" data-act="share" ${st()}>🔗 Share</button>`):"")
-   +(user?'<div class="sh">Your sets</div>'+(libraryList().slice(0,15).map(x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(short(x.title,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`}).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>'):"");
+   +(cur?`<div class="sh">${esc(short(cur.title,26))}</div>`+P.map(tb).join("")+(M.length?`<button class="sl" data-act="more" ${st()} aria-expanded="${showM}">${showM?"▾":"▸"} More</button>`+(showM?M.map(tb).join(""):""):""):"")
+   +(user?'<div class="sh">Your sets</div>'+(shown.map(sb).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>')+(L.length>5?`<button class="sl" data-act="all" ${st()}>${sideAll?"Show fewer":"Show all ("+L.length+")"}</button>`:""):"");
 }
+$("#more").onclick=()=>{const m=$("#moremenu");m.hidden=!m.hidden;$("#more").setAttribute("aria-expanded",String(!m.hidden))};
+$("#moremenu").onclick=()=>{$("#moremenu").hidden=true;$("#more").setAttribute("aria-expanded","false")};
+let sideMore=false,sideAll=false;
 const closeSide=()=>{$("#side").classList.remove("open");$("#scrim").classList.remove("on")};
 $("#menu").onclick=()=>{$("#side").classList.toggle("open");$("#scrim").classList.toggle("on")};
 $("#scrim").onclick=closeSide;
 $("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.act==="more"){sideMore=!sideMore;renderSide();return}
+  if(b.dataset.act==="all"){sideAll=!sideAll;renderSide();return}
   if(b.dataset.go){if(SHARE_ID){SHARE_ID=null;history.replaceState(null,"",location.pathname)}home()}
   else if(b.dataset.act==="guide")openGuide();
   else if(b.dataset.act==="share")openShare();
@@ -960,7 +990,7 @@ $("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
 function planHtml(){
   if(!sets.length)return"";
   const L=libraryList(),total=L.reduce((a,x)=>a+dueCount(x),0),nsets=L.filter(x=>dueCount(x)>0).length;
-  const items=L.filter(x=>dueCount(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,4);
+  const items=L.filter(x=>dueCount(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,3);
   const weak=sets.filter(x=>x.meta?.scores?.length).map(x=>({x,p:x.meta.scores[x.meta.scores.length-1].pct})).filter(o=>o.p<80).sort((a,b)=>a.p-b.p)[0];
   return `<div class="card sec" style="--c:#10b981"><h3>📅 Today</h3>${streakLine()}<p>${total?`You have <b>${total}</b> flashcard${total>1?"s":""} due across ${nsets} set${nsets>1?"s":""}.`:"🎉 No flashcards are due today."}</p>`
    +items.map(x=>{const d=daysLeft(x),n=dueCount(x);return `<div class="row"><span>${icon(x.title)} <b title="${esc(x.title)}">${esc(short(x.title,34))}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
@@ -1002,7 +1032,7 @@ function editTab(p){
 }
 const T={mode:"focus",len:25,end:null,left:25*60};
 const fmt=n=>String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0");
-function tdraw(){$("#tm").textContent=fmt(T.left);$("#tmode").textContent=T.mode==="focus"?"🎯 Focus":"☕ Break";$("#tgo").textContent=T.end?"⏸":"▶";$("#tlen").textContent=T.len+"m";document.title=T.end?`⏱ ${fmt(T.left)} · StudySpark`:"StudySpark"}
+function tdraw(){$("#tm").textContent=fmt(T.left);$("#tmode").textContent=T.mode==="focus"?"🎯":"☕";$("#tmode").title=T.mode==="focus"?"Focus time":"Break time";$("#tgo").textContent=T.end?"⏸":"▶";$("#tlen").textContent=T.len+"m";document.title=T.end?`⏱ ${fmt(T.left)} · StudySpark`:"StudySpark"}
 function ttick(){
   if(!T.end)return;T.left=Math.max(0,Math.round((T.end-Date.now())/1000));
   if(T.left<=0){sfx.win();
@@ -1106,8 +1136,8 @@ async function loadStats(u){
 }
 function renderStreak(){
   const b=$("#badges");if(!b)return;
-  if(!user){b.textContent="🏅 Streak & badges";return}
-  const si=streakInfo();b.textContent=`🔥 ${si.cur}-day streak · 🏅 ${Object.keys(ST.got).length}/${BADGES.length}`;
+  if(!user){b.textContent="🏅";return}
+  const si=streakInfo(),txt=`${si.cur}-day streak, ${Object.keys(ST.got).length} of ${BADGES.length} badges`;b.textContent=si.cur?`🔥 ${si.cur}`:"🏅";b.title=txt;b.setAttribute("aria-label","Streak and badges: "+txt);
 }
 const streakLine=()=>{const s=streakInfo();return s.cur?`<p>🔥 <b>${s.cur}-day streak</b>${s.today?"":" · study today to keep it going!"}</p>`:'<p class="mute">🔥 Study today to start a streak.</p>'};
 $("#badges").onclick=()=>{
