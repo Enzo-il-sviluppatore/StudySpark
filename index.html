@@ -158,7 +158,7 @@ const pct=s=>{const c=s.cards||[];return c.length?Math.round(100*c.filter(x=>x.b
 const COL=["#5b4bdb","#0369a1","#047857","#b45309","#b91c1c","#be185d","#6d28d9"];
 const GROUP={concept:["#5b4bdb","Concept"],process:["#0369a1","Process"],example:["#047857","Example"],term:["#b45309","Term"]};
 const PALETTES={aurora:{n:"Aurora",b:["#5b4bdb","#8f82ff"],g:["#5b4bdb","#0ea5e9","#ec4899"]},ocean:{n:"Ocean",b:["#0369a1","#38bdf8"],g:["#0369a1","#06b6d4","#6366f1"]},forest:{n:"Forest",b:["#15803d","#4ade80"],g:["#15803d","#7ec315","#0ea5e9"]},sunset:{n:"Sunset",b:["#c2410c","#fb923c"],g:["#ef4444","#f59e0b","#ec4899"]},berry:{n:"Berry",b:["#be185d","#f472b6"],g:["#be185d","#8b5cf6","#f59e0b"]},graphite:{n:"Graphite",b:["#374151","#9ca3af"],g:["#1f2937","#4b5563","#6b7280"]},lavender:{n:"Lavender",b:["#7c3aed","#c4b5fd"],g:["#7c3aed","#a78bfa","#ea8dfc"]},mint:{n:"Mint",b:["#0f766e","#5eead4"],g:["#0f766e","#2bc88e","#38bdf8"]},rose:{n:"Rose",b:["#be123c","#fda4af"],g:["#e11d48","#fb7185","#f59e0b"]},midnight:{n:"Midnight",b:["#1d4ed8","#93c5fd"],g:["#0f172a","#1e3a8a","#7c3aed"]},neon:{n:"Neon",b:["#087994","#22d3ee"],g:["#06b6d4","#d946ef","#7ec315"]},coffee:{n:"Coffee",b:["#92400e","#fbbf24"],g:["#78350f","#b45309","#d97706"]},candy:{n:"Candy",b:["#cb226d","#f9a8d4"],g:["#ec4899","#10bdd8","#caa902"]},arctic:{n:"Arctic",b:["#026fa9","#7dd3fc"],g:["#0284c7","#06c0d8","#9bacfc"]}};
-const DEF={listen:{rate:1,voice:"",dlang:""},theme:"auto",palette:"aurora",bg:"glow",font:"system",size:"normal",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
+const DEF={backupRemind:true,listen:{rate:1,voice:"",dlang:""},theme:"auto",palette:"aurora",bg:"glow",font:"system",size:"normal",sound:true,vol:.6,anim:"auto",types:{mc:true,multi:true,written:true},qn:0,shuffleQ:true,shuffleO:true,why:true};
 let S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};
 try{const r=JSON.parse(localStorage.getItem("ss_settings")||"{}");S={...S,...r,types:{...S.types,...(r.types||{})},listen:{...S.listen,...(r.listen||{})}}}catch(e){}
 const rl=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
@@ -203,7 +203,8 @@ function openSettings(){
   ${chk("Shuffle question order",S.shuffleQ,"shuffleQ")}${chk("Shuffle answer options",S.shuffleO,"shuffleO")}${chk("Explain why wrong answers are wrong",S.why,"why")}
   ${Object.values(Q).some(q=>q.cap)?`<h3>🤖 Today’s AI usage</h3>${[["/generate","Study-set generations"],["/chat","Tutor messages"],["/grade","Written-answer checks"],["/explain","Explanations"],["/readphoto","AI photo reading"],["/quizgen","Practice-question sets"]].filter(([k])=>Q[k]?.cap).map(([k,l])=>`<div class="row"><span>${l}</span><span>${Q[k].cap-Q[k].left} / ${Q[k].cap} used</span></div><div class="bar"><i style="width:${100*(Q[k].cap-Q[k].left)/Q[k].cap}%"></i></div>`).join("")}<p class="mute">Resets at midnight UTC.</p>`:""}
   <h3>🔒 Your data</h3><p class="mute">Your notes and study sets are stored in your account. To make study materials and answer tutor questions, the text is sent to an AI service (Groq). Please don’t upload sensitive personal information. Back up regularly: the backup file contains your notes. Share links stop working when you delete a set or all your data.</p>
-  ${user?'<p><button class="alt" id="dl">💾 Back up my data</button> <button class="alt" id="rs">⬆️ Restore from backup</button><input type="file" id="rsf" accept=".json,application/json" hidden aria-label="Choose a backup file"> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
+  ${user?`${chk("Remind me to back up every month",S.backupRemind!==false,"backupRemind")}<p class="mute">Last backup on this device: ${lastBackup()?esc(new Date(lastBackup()).toLocaleDateString()):"never"}.</p>`:""}
+  ${user?'<p><button class="alt" id="bk">💾 Back up my data</button> <button class="alt" id="rs">⬆️ Restore from backup</button><input type="file" id="rsf" accept=".json,application/json" hidden aria-label="Choose a backup file"> <button class="alt" id="del" style="border-color:var(--bad);color:var(--bad)">🗑️ Delete all my data</button></p>':""}
   <p><button class="alt" id="rst">Reset to defaults</button></p><p class="mute">Saved on this device${user?" and synced to your account":""}.</p></div>`};
   draw();
   if(typeof speechSynthesis!=="undefined")speechSynthesis.addEventListener("voiceschanged",()=>{if(m.isConnected)draw()},{once:true});
@@ -215,7 +216,7 @@ function openSettings(){
     else if(b.dataset.pal){S.palette=b.dataset.pal;persist();draw()}
     else if(b.id==="tst")sfx.correct();
     else if(b.id==="tv"){stopListen();speakOnce("This is how your study notes will sound.")}
-    else if(b.id==="dl")exportData();
+    else if(b.id==="bk")exportData();
     else if(b.id==="rs")$("#rsf").click();
     else if(b.id==="del")wipeData(m);
     else if(b.id==="rst"){S={...DEF,types:{...DEF.types},listen:{...DEF.listen}};persist();draw()}
@@ -292,6 +293,7 @@ const buildBackup=()=>({app:"StudySpark",version:1,exported:new Date().toISOStri
 function exportData(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(buildBackup(),null,2)],{type:"application/json"}));
   a.download="studyspark-backup-"+dstr()+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  try{localStorage.setItem("ss_lastbackup_"+user.uid,String(Date.now()))}catch(e){}
 }
 async function restoreFile(f,parent){
   if(parent)parent.remove();
@@ -430,15 +432,36 @@ function openSubject(){
   document.body.appendChild(m);$("#sjv").onkeydown=e=>{if(e.key==="Enter")$("#sjs").click()};$("#sjv").focus();
 }
 
+/* ---------- Backup reminder ---------- */
+function lastBackup(){try{return +localStorage.getItem("ss_lastbackup_"+user.uid)||0}catch(e){return 0}}
+function backupDue(){
+  if(!user||!sets.length||S.backupRemind===false)return null;
+  let snooze=0;try{snooze=+localStorage.getItem("ss_bksnooze_"+user.uid)||0}catch(e){}
+  const now=Date.now(),last=lastBackup();
+  if(snooze>now)return null;
+  if(last)return now-last>=30*864e5?{days:Math.floor((now-last)/864e5)}:null;
+  const oldest=Math.min(...sets.map(x=>x.created||now));
+  return now-oldest>=14*864e5?{days:null}:null;
+}
+function backupCard(){
+  const d=backupDue();if(!d)return"";
+  return `<div class="card sec" style="--c:#0369a1"><h3>💾 Time for a backup</h3><p>${d.days==null?"You haven’t made a backup yet.":`Your last backup was ${d.days} days ago.`} A backup file keeps your sets safe if something goes wrong. It only takes a few seconds.</p><p><button id="bkn">⬇️ Back up now</button> <button class="alt" id="bks">Remind me in a week</button> <button class="alt" id="bkx">Stop reminding me</button></p></div>`;
+}
+function wireBackup(){
+  if($("#bkn"))$("#bkn").onclick=()=>{exportData();toast("Backup saved. Keep the file somewhere safe.");home()};
+  if($("#bks"))$("#bks").onclick=()=>{try{localStorage.setItem("ss_bksnooze_"+user.uid,String(Date.now()+7*864e5))}catch(e){}home()};
+  if($("#bkx"))$("#bkx").onclick=()=>{S.backupRemind=false;persist();toast("Reminders turned off. You can turn them back on in Settings.");home()};
+}
+
 function home(){stopListen();cur=null;renderSide();
-  app.innerHTML=`${planHtml()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
+  app.innerHTML=`${planHtml()}${backupCard()}${tipCard()}<div class="card hero"><h2>✨ New study set</h2>
   <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
   <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
   <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>
   <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>`;
   $("#file").onchange=readFile;
-  $("#go").onclick=generate;renderQuota();wireTips();
+  $("#go").onclick=generate;renderQuota();wireTips();wireBackup();
   app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{const[id,t]=b.dataset.plan.split(":");cur=sets.find(x=>x.id===id);tab=t;study()});
   drawTools();drawLib();
 }
