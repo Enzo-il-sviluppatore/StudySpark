@@ -130,7 +130,7 @@ details.card.hero>summary{cursor:pointer}details.card[open]>summary{margin-botto
 <a href="#app" class="skip">Skip to main content</a>
 <header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
-<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" title="Focus timer">🎯</span> <b id="tm">25:00</b><span class="trow"><button class="ib" id="tgo" aria-label="Start or pause the timer">▶</button><button class="ib" id="trs" title="Reset" aria-label="Reset the timer">↺</button><button class="ib" id="tlen" title="Focus length">25m</button></span></div><div class="ficons"><button class="ib" id="badges" title="Streak and badges" aria-label="Streak and badges">🏅</button><button class="ib" id="gear" title="Settings" aria-label="Settings">⚙️</button><button class="ib" id="snd" title="Sound on or off" aria-label="Sound">🔊</button><button class="ib" id="more" title="More" aria-label="More options" aria-expanded="false">⋯</button></div><div id="moremenu" hidden><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="inst">📲 Get the app</button></div></div></aside><main id="app" tabindex="-1"></main></div>
+<div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" title="Focus timer">🎯</span> <b id="tm">25:00</b><span class="trow"><button class="ib" id="tgo" aria-label="Start or pause the timer">▶</button><button class="ib" id="trs" title="Reset" aria-label="Reset the timer">↺</button><button class="ib" id="tlen" title="Focus length">25m</button></span></div><div class="ficons"><button class="ib" id="badges" title="Streak and badges" aria-label="Streak and badges">🏅</button><button class="ib" id="gear" title="Settings" aria-label="Settings">⚙️</button><button class="ib" id="snd" title="Sound on or off" aria-label="Sound">🔊</button><button class="ib" id="more" title="More" aria-label="More options" aria-expanded="false">⋯</button></div><div id="moremenu" hidden><button class="sl" id="howto">❓ How to use</button><button class="sl" id="fbk">💬 Send feedback</button><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="inst">📲 Get the app</button></div></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
 <div id="player" role="region" aria-label="Audio player" hidden><span id="pl">Reading…</span><button class="alt" id="ppp" aria-label="Pause">⏸</button><button class="alt" id="pnx" aria-label="Next section">⏭</button><button class="alt" id="psp" aria-label="Stop">⏹</button></div>
 <button id="fab" title="AI study tutor" aria-label="Open AI study tutor" hidden>🤖</button>
@@ -365,8 +365,8 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;if(!u){ST=blankST();stTimer&&clearTimeout(stTimer)}renderSide();renderStreak();$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u&&SHARE_ID){openShared(SHARE_ID);return}
-  if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>.</p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};return}
-  await loadPrefs(u);await loadStats(u);loadUsage();await loadSets();SHARE_ID?openShared(SHARE_ID):home();
+  if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>. <a href="#" id="hwl">How StudySpark works</a></p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};$("#hwl").onclick=e=>{e.preventDefault();openHowTo()};return}
+  await loadPrefs(u);await loadStats(u);loadUsage();await loadSets();SHARE_ID?openShared(SHARE_ID):home();maybeTour();
 });
 
 async function loadSets(){
@@ -1376,6 +1376,7 @@ function openPrivacy(){
   m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">🔒 Privacy &amp; terms</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
   <h3>What we keep</h3><p>When you sign in with Google, we receive your name, email and profile picture from Google. We show your name inside the app. We store your study sets (your notes text, the study materials made from them, flashcard and quiz progress), your settings, and your streak and badges, so they’re there when you come back.</p>
   <h3>Who processes it</h3><ul><li><b>Google Firebase</b> stores your account and data.</li><li><b>An AI service (Groq)</b>, reached through our own server, receives the text of your notes when you make a set, your tutor questions, and your written quiz answers, so it can reply. Please don’t include private details such as addresses, phone numbers or health or school records.</li><li><b>Photos</b> of notes are read inside your browser by default and aren’t uploaded. If you choose “Better for handwriting (AI)”, each photo is sent to the AI service (Groq) to be turned into text. StudySpark doesn’t keep the photo, only the text.</li><li><b>Wikimedia Commons</b> receives search words (not your name) to find images. Fonts and code libraries load from public CDNs.</li><li><b>Dictation</b> uses your browser’s speech service. In Chrome and Edge your voice goes to Google or Microsoft while you dictate.</li></ul>
+  <h3>Feedback</h3><p>If you send feedback, we receive your message. With your permission we also receive technical details (browser and screen size) and your Google email so we can reply. Please don’t put private information in feedback.</p>
   <h3>Sharing</h3><p>If you create a share link, anyone who has the link can view a copy of that set’s study materials until it expires or you stop sharing. Original notes, scores and your email are not included.</p>
   <h3>Your choices</h3><p>In <b>⚙️ Settings → Your data</b> you can download your data, or delete all of it, including share links. You can also stop sharing a set at any time.</p>
   <h3>Using StudySpark</h3><ul><li>StudySpark is a study aid. AI-made content can be wrong, so check it against your own notes and your teacher.</li><li>Only upload notes you’re allowed to use. Don’t upload anything unlawful, harmful or private about other people.</li><li>Don’t use the tutor to get answers to graded work; it is designed to give hints.</li><li>The service is provided as is, may change or stop, and may have limits to keep it free.</li></ul>
@@ -1441,6 +1442,93 @@ function openExplain(item){
   };
   document.body.appendChild(m);renderQuota();$("#sx").focus();
 }
+
+/* ---------- Welcome tour, how-to guide and feedback ---------- */
+const APP_VERSION="2026-10-28";
+const TOUR=[
+ {i:"📚",t:"Turn your notes into study tools",d:"Tap <b>✨ New study set</b> and add notes: type or paste them, or upload a file, a PowerPoint or a photo of a page. In under a minute you get flashcards, a quiz, study notes, vocabulary and a concept map."},
+ {i:"🃏",t:"Study the smart way",d:"Flashcards come back right when you’re about to forget them. Quizzes explain why each answer is right or wrong, and show where to look in your notes. Set a <b>learn-by date</b> under Progress to get a plan."},
+ {i:"🤖",t:"Ask for help, not answers",d:"The 🤖 button (bottom right) is your study tutor. It gives hints and explanations, not homework answers. Highlight any text and tap <b>Ask AI</b>, or press 💡 on a concept to get it explained a different way."},
+ {i:"📲",t:"Make it yours",d:"In <b>⚙️ Settings</b> you can change colours, fonts, text size and sound. Use <b>⋯ → Get the app</b> to add StudySpark to your home screen, and back up your sets from Settings now and then."}];
+function openTour(start=0){
+  const uid=user?user.uid:"x";let i=start;
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Welcome to StudySpark");
+  const done=()=>{try{localStorage.setItem("ss_tour_"+uid,"1")}catch(e){}m.remove()};
+  const draw=()=>{const t=TOUR[i],last=i===TOUR.length-1;
+    m.innerHTML=`<div class="panel" style="text-align:center"><div style="font-size:3rem" aria-hidden="true">${t.i}</div><h2 style="margin:6px 0">${t.t}</h2><p>${t.d}</p>
+    <div aria-label="Step ${i+1} of ${TOUR.length}" role="img">${TOUR.map((_,k)=>`<span class="dot ${k===i?"on":""}"></span>`).join("")}</div>
+    <p style="margin-top:14px">${i?'<button class="alt" id="tb">Back</button> ':""}${last?'<button id="tg">Start my first set</button> ':'<button id="tn">Next</button> '}<button class="alt" id="ts">${last?"Close":"Skip"}</button></p></div>`;
+    const f=m.querySelector("#tn,#tg");if(f)f.focus();
+  };
+  m.onclick=e=>{const id=e.target.id;
+    if(e.target===m||id==="ts")return done();
+    if(id==="tn"){i++;draw()}else if(id==="tb"){i--;draw()}
+    else if(id==="tg"){done();const d=$("details.hero");if(d){d.open=true;d.scrollIntoView({block:"center"});const t=$("#title");if(t)t.focus()}}};
+  draw();document.body.appendChild(m);
+}
+function maybeTour(){
+  if(!user||SHARE_ID)return;
+  let seen=false;try{seen=!!localStorage.getItem("ss_tour_"+user.uid)}catch(e){}
+  if(seen)return;
+  if(sets.length>0){try{localStorage.setItem("ss_tour_"+user.uid,"1")}catch(e){}return}
+  openTour();
+}
+const HOWTO=[
+ ["📚 Make a study set",["Tap <b>✨ New study set</b>, add a title, then upload files (text, PDF, PowerPoint or photos, up to 10 MB each) or paste your notes.","Press <b>Generate</b>. After 10–30 seconds you get study notes, flashcards, a quiz, vocabulary, examples and a concept map.","Add more later with <b>More → ➕ Add notes</b>. Nothing is deleted."]],
+ ["🃏 Study",["<b>Flashcards:</b> flip a card, then press <b>Got it</b> or <b>Still learning</b>. Cards you know come back less often.","<b>Quiz:</b> multiple choice, select-all and written questions, with a reason for every answer. Your results stay until you press Retake, and you can practise only what you missed.","<b>Listen:</b> 🔊 reads notes and cards aloud. 🎤 lets you dictate written answers."]],
+ ["🤖 Get help",["The 🤖 tutor gives hints and explanations, not homework answers.","Highlight text and tap <b>Ask AI</b>, or press 💡 on a concept or flashcard to see it explained another way and turn it into flashcards or quiz questions."]],
+ ["📅 Stay on track",["Pick a <b>learn-by date</b> under <b>More → 📊 Progress</b> to get a daily plan.","Your 🔥 streak and 🏅 badges are in the sidebar. The ⏱ timer helps you focus in short rounds.","<b>⋯ → Study guide (PDF)</b> makes a printable summary."]],
+ ["⚙️ Make it yours",["<b>Settings</b> has themes, fonts (including dyslexia-friendly), text size, sound and quiz options.","<b>⋯ → Get the app</b> adds StudySpark to your home screen. Sets you have opened still work offline."]],
+ ["🔒 Keep it safe",["Back up your sets in <b>Settings → Your data</b>. You can also delete everything there.","<b>⋯ → Share</b> makes a read-only link for classmates or a teacher. Stop sharing any time.","Don’t put private information in your notes."]],
+ ["❓ Something wrong?",["If a set doesn’t generate, try again or use shorter notes. Daily limits reset at midnight UTC.","The AI can make mistakes, so check it against your notes. Fix cards and questions under <b>More → ✏️ Edit</b>.","Tell us what’s broken or confusing with <b>⋯ → 💬 Send feedback</b>."]]];
+const howtoBody=()=>HOWTO.map(([h,l])=>`<h3>${h}</h3><ul>${l.map(x=>`<li>${x}</li>`).join("")}</ul>`).join("");
+function openHowTo(){
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","How to use StudySpark");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">❓ How to use StudySpark</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>${howtoBody()}
+  <p><button class="alt" id="hp">🖨️ Print or save as PDF</button> ${user?'<button class="alt" id="ht">🎓 Replay the welcome tour</button>':""}</p></div>`;
+  m.onclick=e=>{const id=e.target.id;
+    if(e.target===m||id==="sx")return m.remove();
+    if(id==="hp")printGuide(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>How to use StudySpark</title><style>@page{margin:14mm}body{font:10pt/1.4 system-ui,Arial,sans-serif;color:#000}h1{font-size:18pt;margin:0 0 4pt}h3{font-size:11pt;margin:9pt 0 2pt;break-after:avoid}ul{margin:0;padding-left:14pt}li{margin:1pt 0}.c{column-count:2;column-gap:18pt}.c h3,.c ul{break-inside:avoid}.f{margin-top:10pt;color:#444;font-size:8.5pt}</style></head><body><h1>⚡ How to use StudySpark</h1><div class="c">${howtoBody()}</div><p class="f">StudySpark turns your notes into flashcards, quizzes and study notes. AI-made content can contain mistakes, so check it against your own notes.</p></body></html>`);
+    if(id==="ht"){m.remove();openTour()}};
+  document.body.appendChild(m);$("#sx").focus();
+}
+function openFeedback(){
+  if(!user){if(CONTACT){location.href="mailto:"+CONTACT+"?subject="+encodeURIComponent("StudySpark feedback");return}return toast("Sign in to send feedback.")}
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Send feedback");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">💬 Send feedback</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <p class="mute">Tell us what’s broken, confusing, or what you wish it could do.</p>
+  <p><select id="fbt" aria-label="Type of feedback"><option value="bug">🐞 Something is broken</option><option value="confusing">🤔 Something is confusing</option><option value="idea">💡 I have an idea</option><option value="other">💬 Something else</option></select></p>
+  <p><textarea id="fbm" maxlength="1000" placeholder="What happened? What did you expect?" aria-label="Your feedback"></textarea></p>
+  <label class="row"><span>Include technical details (browser, screen size, which screen I was on)</span><input type="checkbox" id="fbi" checked></label>
+  <label class="row"><span>You may email me about this (shares my Google email)</span><input type="checkbox" id="fbe"></label>
+  <p class="mute">Please don’t include private information. We never send your notes.</p><p><button id="fbs">Send</button></p></div>`;
+  m.onclick=async e=>{
+    const id=e.target.id;if(e.target===m||id==="sx")return m.remove();
+    if(id!=="fbs")return;
+    const msg=$("#fbm").value.trim();
+    if(msg.length<5)return toast("Please write a little more so we can understand.");
+    let last=0;try{last=+localStorage.getItem("ss_fb_last")||0}catch(x){}
+    if(Date.now()-last<60000)return toast("You just sent feedback. Please wait a minute before sending more.");
+    const info=$("#fbi").checked?[APP_VERSION,navigator.userAgent.slice(0,160),innerWidth+"x"+innerHeight,navigator.language,isStandalone()?"installed app":"browser",navigator.onLine?"online":"offline","screen: "+(cur?(cur.shared?"shared set":"set / "+tab):"library")].join(" | ").slice(0,500):"";
+    const data={type:$("#fbt").value,message:msg,at:Date.now(),v:APP_VERSION};
+    if(info)data.info=info;if($("#fbe").checked&&user.email)data.contact=String(user.email).slice(0,120);
+    const b=$("#fbs");b.disabled=true;
+    try{
+      const send=addDoc(collection(db,"feedback"),data);
+      await Promise.race([send,new Promise((_,rej)=>setTimeout(()=>rej(new Error("slow")),8000))]);
+      try{localStorage.setItem("ss_fb_last",String(Date.now()))}catch(x){}
+      m.remove();toast("Thank you! Your feedback was sent.");
+    }catch(x){
+      if(x.message==="slow"){try{localStorage.setItem("ss_fb_last",String(Date.now()))}catch(y){}m.remove();toast("You may be offline. Your feedback will be sent when you reconnect.")}
+      else{b.disabled=false;toast("Couldn’t send feedback: "+(x.code||x.message))}
+    }
+  };
+  document.body.appendChild(m);$("#fbm").focus();
+}
+$("#howto").onclick=openHowTo;$("#fbk").onclick=openFeedback;
 
 const chats={};let picked="",thinking=false;
 function chip(){
