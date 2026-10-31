@@ -1,0 +1,17 @@
+name: Tests
+# Runs every time you commit or open a pull request. A green tick means nothing obvious broke.
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - name: Colour contrast check
+        run: python3 contrast-check.py index.html
