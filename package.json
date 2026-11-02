@@ -1,0 +1,8 @@
+{
+  "name": "studyspark",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StudySpark: turn notes into flashcards, quizzes and study notes.",
+  "scripts": { "test": "node tests/run.js" },
+  "devDependencies": { "jsdom": "^24.1.0" }
+}
