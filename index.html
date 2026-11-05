@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StudySpark</title>
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#5b4bdb"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#5b4bdb"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#68708a;--brand:#5b4bdb;--onb:#fff;--ok:#0f7a43;--bad:#b91c1c;--red:#b91c1c;--amber:#92400e;--green:#047857;--on-ok:#fff;--on-bad:#fff;--line:#e3e6f0}
 :root[data-theme=contrast]{--bg:#fff;--card:#fff;--ink:#000;--mute:#333;--line:#000;--brand:#0000cc;--ok:#005a00;--bad:#a80000;--red:#a80000;--amber:#6b3a00;--green:#005a00;--on-ok:#fff;--on-bad:#fff}:root[data-theme=contrast] .card{border-width:2px}
@@ -84,7 +84,7 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
 @media(max-width:800px){#menu{display:inline-block}#side{position:fixed;left:0;top:var(--hh,57px);z-index:25;width:min(300px,85vw);transform:translateX(-105%);transition:transform .25s;box-shadow:0 0 30px #0006}#side.open{transform:none}}
 @keyframes slidein{from{opacity:0;transform:translateX(-16px)}}@keyframes floaty{50%{transform:translateY(-4px)}}@keyframes grow{from{width:0}}@keyframes twinkle{from{opacity:.25}to{opacity:.85}}@keyframes bob{50%{transform:translateY(-5px)}}@keyframes glowtxt{to{text-shadow:0 0 14px #fff9}}
 @keyframes swr{to{transform:translateX(120%) rotate(12deg);opacity:0}}@keyframes swl{to{transform:translateX(-120%) rotate(-12deg);opacity:0}}
-h1{animation:glowtxt 3s ease-in-out infinite alternate}.ico{display:inline-block;animation:floaty 4s ease-in-out infinite}.bar i{animation:grow .9s ease both}
+.ico{display:inline-block;animation:floaty 4s ease-in-out infinite}.bar i{animation:grow .9s ease both}
 .fc.swr{animation:swr .22s ease-in forwards}.fc.swl{animation:swl .22s ease-in forwards}
 .typing{display:flex;gap:4px;width:62px}.typing i{width:8px;height:8px;border-radius:50%;background:var(--mute);animation:bob 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
 :root[data-bg=plain] body::before{display:none}
@@ -124,11 +124,25 @@ input[type=search]{width:100%;font:inherit;padding:10px;border-radius:10px;borde
 .sec>summary,.sset>summary{cursor:pointer;font-weight:700}.sec>summary{margin-bottom:6px}.sset{border-top:1px solid var(--line);padding:2px 0}.sset>summary{color:var(--brand);padding:10px 0}
 details.card.hero>summary{cursor:pointer}details.card[open]>summary{margin-bottom:10px}
 .tabs{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;padding-bottom:4px}.tabs button{flex:none}
+h1{display:inline-flex;align-items:center;gap:2px;font-weight:800;letter-spacing:.2px;color:#fff}h1 .logo{margin-right:8px;filter:drop-shadow(0 2px 7px #0006);transition:transform .35s}h1:hover .logo{transform:rotate(-8deg) scale(1.1)}
+h1 .sp{background:linear-gradient(180deg,#fffbd0,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{display:inline-block;flex:none}.herologo{text-align:center;margin:2px 0 6px}.herologo .logo{filter:drop-shadow(0 8px 18px #5b4bdb66);animation:floaty 4s ease-in-out infinite}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2d1fa3"/><stop offset=".5" stop-color="#5b4bdb"/><stop offset="1" stop-color="#e2399a"/></linearGradient><radialGradient id="lg-sh" cx=".5" cy=".38" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="lg-bolt" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#fffbd0"/><stop offset=".35" stop-color="#fde047"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+  <linearGradient id="lg-page" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe3ff"/></linearGradient>
+  <filter id="lg-glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14" result="b"/><feColorMatrix in="b" type="matrix" values="1 0 0 0 .1  0 .8 0 0 .1  0 0 .1 0 0  0 0 0 .9 0"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs><symbol id="logo-mark" viewBox="0 0 512 512"><path d="M256 352 C 222 322 152 314 92 334 L 92 430 C 152 410 222 418 256 450 Z" fill="url(#lg-page)"/>
+<path d="M256 352 C 290 322 360 314 420 334 L 420 430 C 360 410 290 418 256 450 Z" fill="url(#lg-page)" opacity=".94"/>
+<path d="M256 352 L256 450" stroke="#8b87d8" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+<g filter="url(#lg-glow)"><path d="M300 44 L168 258 L246 258 L214 384 L352 164 L272 164 Z" fill="url(#lg-bolt)" stroke="#fffbe0" stroke-width="6" stroke-linejoin="round"/></g>
+<path d="M112 108 l9 -26 9 26 26 9 -26 9 -9 26 -9 -26 -26 -9z" fill="#fff" opacity=".95"/>
+<path d="M404 96 l12 -34 12 34 34 12 -34 12 -12 34 -12 -34 -34 -12z" fill="#fff"/>
+<path d="M432 262 l7 -20 7 20 20 7 -20 7 -7 20 -7 -20 -20 -7z" fill="#fde047"/></symbol><symbol id="logo-icon" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="url(#lg-bg)"/><rect width="512" height="512" rx="112" fill="url(#lg-sh)"/><use href="#logo-mark"/></symbol></svg>
 <a href="#app" class="skip">Skip to main content</a>
-<header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1>⚡ StudySpark</h1></div><div id="auth"></div></header>
+<header><div style="display:flex;align-items:center;gap:10px"><button class="alt" id="menu" title="Menu" aria-label="Open menu">☰</button><h1 aria-label="StudySpark"><svg class="logo" width="32" height="32" aria-hidden="true"><use href="#logo-mark"/></svg><span>Study</span><span class="sp">Spark</span></h1></div><div id="auth"></div></header>
 <div id="offline" hidden>📴 You’re offline. Notes and flashcards still work; AI features need internet.</div>
 <div id="shell"><aside id="side"><nav id="snav" aria-label="Study sets and tools"></nav><div id="sfoot"><div class="timer"><span id="tmode" title="Focus timer">🎯</span> <b id="tm">25:00</b><span class="trow"><button class="ib" id="tgo" aria-label="Start or pause the timer">▶</button><button class="ib" id="trs" title="Reset" aria-label="Reset the timer">↺</button><button class="ib" id="tlen" title="Focus length">25m</button></span></div><div class="ficons"><button class="ib" id="badges" title="Streak and badges" aria-label="Streak and badges">🏅</button><button class="ib" id="gear" title="Settings" aria-label="Settings">⚙️</button><button class="ib" id="snd" title="Sound on or off" aria-label="Sound">🔊</button><button class="ib" id="more" title="More" aria-label="More options" aria-expanded="false">⋯</button></div><div id="moremenu" hidden><button class="sl" id="howto">❓ How to use</button><button class="sl" id="fbk">💬 Send feedback</button><button class="sl" id="privacy">🔒 Privacy &amp; terms</button><button class="sl" id="inst">📲 Get the app</button></div></div></aside><main id="app" tabindex="-1"></main></div>
 <div id="scrim"></div>
@@ -365,7 +379,7 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;if(!u){ST=blankST();stTimer&&clearTimeout(stTimer)}renderSide();renderStreak();$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u&&SHARE_ID){openShared(SHARE_ID);return}
-  if(!u){app.innerHTML=`<div class="card hero"><h2>📚 Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>. <a href="#" id="hwl">How StudySpark works</a></p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};$("#hwl").onclick=e=>{e.preventDefault();openHowTo()};return}
+  if(!u){app.innerHTML=`<div class="card hero"><div class="herologo"><svg class="logo" width="88" height="88" role="img" aria-label="StudySpark logo"><use href="#logo-icon"/></svg></div><h2>Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>. <a href="#" id="hwl">How StudySpark works</a></p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};$("#hwl").onclick=e=>{e.preventDefault();openHowTo()};return}
   await loadPrefs(u);await loadStats(u);loadUsage();await loadSets();SHARE_ID?openShared(SHARE_ID):home();maybeTour();
 });
 
@@ -1446,7 +1460,7 @@ function openExplain(item){
 /* ---------- Welcome tour, how-to guide and feedback ---------- */
 const APP_VERSION="2026-10-28";
 const TOUR=[
- {i:"📚",t:"Turn your notes into study tools",d:"Tap <b>✨ New study set</b> and add notes: type or paste them, or upload a file, a PowerPoint or a photo of a page. In under a minute you get flashcards, a quiz, study notes, vocabulary and a concept map."},
+ {i:'<svg class="logo" width="76" height="76" aria-hidden="true"><use href="#logo-icon"/></svg>',t:"Turn your notes into study tools",d:"Tap <b>✨ New study set</b> and add notes: type or paste them, or upload a file, a PowerPoint or a photo of a page. In under a minute you get flashcards, a quiz, study notes, vocabulary and a concept map."},
  {i:"🃏",t:"Study the smart way",d:"Flashcards come back right when you’re about to forget them. Quizzes explain why each answer is right or wrong, and show where to look in your notes. Set a <b>learn-by date</b> under Progress to get a plan."},
  {i:"🤖",t:"Ask for help, not answers",d:"The 🤖 button (bottom right) is your study tutor. It gives hints and explanations, not homework answers. Highlight any text and tap <b>Ask AI</b>, or press 💡 on a concept to get it explained a different way."},
  {i:"📲",t:"Make it yours",d:"In <b>⚙️ Settings</b> you can change colours, fonts, text size and sound. Use <b>⋯ → Get the app</b> to add StudySpark to your home screen, and back up your sets from Settings now and then."}];
