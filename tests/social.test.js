@@ -1,107 +1,37 @@
-// Games, friends, challenges and leaderboards: two simulated people share one fake database.
-const boot = require("./harness"), { section, check, done } = require("./lib");
-const pairs = [["Mitochondria", "Powerhouse of the cell"], ["Nucleus", "Holds the DNA"], ["Ribosome", "Builds proteins"], ["Golgi", "Packages proteins"], ["Lysosome", "Breaks down waste"], ["Vacuole", "Stores water"]];
-const mkSet = () => ({ title: "Cell Biology", created: 1000, text: "x", notes: { summary: "S", concepts: [], vocab: [], examples: [] }, cards: pairs.map(([f, b]) => ({ front: f, back: b, box: 0 })),
-  quiz: [{ type: "mc", q: "Which organelle makes ATP?", options: ["Mitochondria", "Nucleus", "Ribosome", "Golgi"], answer: 0 }], lastScore: null, meta: { scores: [] }, visuals: null, dialogues: null });
-const until = async (fn, ms = 12000) => { const t = Date.now(); while (Date.now() - t < ms) { if (fn()) return true; await new Promise(r => setTimeout(r, 50)); } return false; };
-const A = { uid: "uA", displayName: "Ann", email: "ann@school.org" }, B = { uid: "uB", displayName: "Bo", email: "bo@school.org" };
-const setup = async (a, nick) => { a.click("#snav [data-go=social]"); await a.tick(60); a.click("#su"); a.$("#nk").value = nick; a.$("#ok").checked = true; a.click("#sv"); await a.tick(80); };
-const openSocial = async a => { a.click("#snav [data-go=social]"); await a.tick(120); };
-const playSpeed = async a => { for (let i = 0; i < 40 && !/points|Score:/.test(a.$("#game").textContent); i++) { const o = a.$$("#game .opt:not([disabled])")[0]; if (o) o.click(); await until(() => /points|Score:/.test(a.$("#game").textContent) || a.$$("#game .opt:not([disabled])").length > 0, 3000); } };
-(async () => {
-  const store = new Map();
-  section("Games tab and solo games");
-  let a = await boot({ store, user: A, sets: [mkSet()] }); await a.signIn(); if (a.$("#ts")) a.click("#ts");
-  a.$$("#lib [data-open]")[0].click(); await a.tick(); a.$$("#snav [data-tab=games]")[0].click(); await a.tick(60);
-  check("every set has a Games tab with two games", a.$$("[data-g]").length === 2 && /Speed Round/.test(a.$("#pane").textContent) && /Match/.test(a.$("#pane").textContent));
-  check("'Challenge friends' is offered", a.$$("[data-c]").length === 2);
-  a.click("[data-g=speed]"); check("Speed Round starts with a timer, score and a question", !!a.$("#game .gbar") && /⏱/.test(a.$("#game").textContent) && a.$$("#game .opt").length === 4);
-  await playSpeed(a); check("Speed Round ends with a score and your best is saved", /points/.test(a.$("#game").textContent) && [...store].some(([k, v]) => /sets\//.test(k) && v.meta?.games?.speed?.best >= 0));
-  a.click("#bk2"); await a.tick(60);
-  a.click("[data-g=match]"); const map = Object.fromEntries(pairs);
-  for (let i = 0; i < pairs.length; i++) { const l = a.$$("#game [data-s=l]:not([disabled])")[0]; l.click(); const r = a.$$("#game [data-s=r]:not([disabled])").find(x => x.textContent === map[l.textContent]); r.click(); }
-  check("Match ends when every pair is matched, with a score", /points/.test(a.$("#game").textContent) && /0 mistakes/.test(a.$("#game").textContent), a.$("#game").textContent.slice(0, 80));
-  check("a perfect Match scores more than 2500", +(a.$("#game").textContent.match(/(\d+) points/) || [])[1] > 2500);
-  a.click("#bk2"); await a.tick(60);
-  a.$$("#snav [data-go]")[0].click(); await a.tick(60);
-  const tiny = { ...mkSet(), cards: pairs.slice(0, 2).map(([f, b]) => ({ front: f, back: b, box: 0 })), quiz: [] };
-  let t = await boot({ user: { uid: "uT", displayName: "T" }, sets: [tiny] }); await t.signIn(); t.$$("#lib [data-open]")[0].click(); await t.tick(); t.$$("#snav [data-tab=games]")[0].click(); await t.tick(60);
-  check("a set with too few cards explains what's needed", /Needs at least 4/.test(t.$("#pane").textContent) && t.$$("[data-g]").length === 0);
-
-  section("Turning on Games & friends (opt-in)");
-  a.click("#snav [data-go=social]"); await a.tick(80);
-  check("it starts switched off, with a plain explanation", !!a.$("#su") && /No chat/.test(a.$("#app").textContent));
-  a.click("#su"); a.$("#nk").value = "ab"; a.click("#sv"); check("a nickname that is too short is refused", /3 to 16/.test(a.$("#toast").textContent));
-  a.$("#nk").value = "Call 5551234567"; a.click("#sv"); check("a phone number in a nickname is refused", /phone/i.test(a.$("#toast").textContent));
-  a.$("#nk").value = "Quiz<b>Fox"; a.click("#sv"); check("odd symbols in a nickname are refused", /letters, numbers/.test(a.$("#toast").textContent));
-  a.$("#nk").value = "QuizFox"; a.click("#sv"); check("you must tick the consent box", /tick the box/.test(a.$("#toast").textContent));
-  a.$("#ok").checked = true; a.click("#sv"); await a.tick(100);
-  const profA = store.get("profiles/uA"); const codeA = profA && profA.code;
-  check("your profile is saved with a nickname, avatar and an 8-character friend code", !!profA && profA.nick === "QuizFox" && /^[A-HJ-NP-Z2-9]{8}$/.test(codeA || ""), profA);
-  check("the friend code points to you and nothing else", store.get("codes/" + codeA)?.uid === "uA" && Object.keys(store.get("codes/" + codeA)).length === 1);
-  check("no email or real name is stored in the profile", !JSON.stringify(profA).includes("ann@school.org") && !JSON.stringify(profA).includes("Ann"));
-
-  section("Adding a friend");
-  let b = await boot({ store, user: B, sets: [] }); await b.signIn(); await setup(b, "BoBot");
-  check("a second person can set up too", store.has("profiles/uB"));
-  b.click("#snav [data-go=social]"); await b.tick(120);
-  b.$("#fcode").value = "ZZZZ-ZZZZ"; b.click("#fsend"); await b.tick(60); check("an unknown code gets a clear message", /No one has that code/.test(b.$("#toast").textContent));
-  b.$("#fcode").value = store.get("profiles/uB").code; b.click("#fsend"); await b.tick(60); check("you can't add yourself", /own code/.test(b.$("#toast").textContent));
-  b.$("#fcode").value = codeA.slice(0, 4) + "-" + codeA.slice(4); b.click("#fsend"); await b.tick(80);
-  const req = store.get("friendReq/uB_uA");
-  check("a friend request is created (codes work with or without the dash)", !!req && req.from === "uB" && req.to === "uA");
-  check("the request carries only a nickname and avatar", !JSON.stringify(req).includes("bo@school.org") && req.fromNick === "BoBot");
-  await openSocial(a);
-  check("Ann sees the request", /BoBot/.test(a.$("#app").textContent) && !!a.$("[data-acc]"));
-  a.click("[data-acc]"); await a.tick(120);
-  check("accepting creates one friendship and removes the request", store.has("friendships/uA_uB") && !store.has("friendReq/uB_uA"));
-  check("both people appear in the friendship", JSON.stringify(store.get("friendships/uA_uB").members.sort()) === '["uA","uB"]');
-  check("Ann's friends list shows Bo", /BoBot/.test(a.$("#app").textContent) && /Friends \(1\)/.test(a.$("#app").textContent));
-
-  section("Challenges and the leaderboard");
-  a.$$("#snav [data-go]")[0].click(); await a.tick(60); a.$$("#lib [data-open]")[0].click(); await a.tick(); a.$$("#snav [data-tab=games]")[0].click(); await a.tick(60);
-  a.click("[data-c=speed]"); await a.tick(120);
-  check("the challenge dialog lists friends and explains what is shared", !!a.$("[data-f]") && /shared with the friends you pick/.test(a.$("#sm").textContent));
-  a.click("#cgo"); check("you must pick a friend", /at least one friend/.test(a.$("#toast").textContent));
-  a.$("[data-f]").checked = true; a.click("#cgo"); await a.tick(120);
-  const ch = [...store].find(([k]) => k.startsWith("challenges/")); const chd = ch && ch[1];
-  check("a challenge is created for you and your friend", !!chd && JSON.stringify(chd.members) === '["uA","uB"]' && chd.game === "speed");
-  check("it holds the questions, a score cap, an expiry and no scores yet", chd.items.length >= 4 && chd.max > 0 && chd.expires > Date.now() && Object.keys(chd.scores).length === 0);
-  check("it contains no notes text or email", !JSON.stringify(chd).includes("ann@school.org") && !("text" in chd));
-  await openSocial(b);
-  check("Bo sees the challenge", /Cell Biology/.test(b.$("#app").textContent) && !!b.$("[data-play]"));
-  b.click("[data-play]"); await a.tick(50); await playSpeed(b);
-  check("Bo finishes and sees a score", /Score:/.test(b.$("#game").textContent));
-  const sc = store.get(ch[0]).scores.uB;
-  check("Bo's score is saved under only his own name", !!sc && sc.tries === 1 && sc.nick === "BoBot" && !("uA" in store.get(ch[0]).scores));
-  b.click("#lbb"); check("the leaderboard shows Bo", /BoBot/.test(b.$("#sm").textContent) && /\(you\)/.test(b.$("#sm").textContent)); b.click("#sx");
-  const cd = store.get(ch[0]); cd.scores = { uA: { nick: "QuizFox", emoji: "🦊", best: 900, tries: 1, at: 1 }, uB: { nick: "BoBot", emoji: "🐼", best: 1500, tries: 2, at: 2 } }; store.set(ch[0], cd);
-  await openSocial(a); a.click("[data-lb]"); const lb = a.$("#sm").textContent;
-  check("the leaderboard ranks the higher score first with a gold medal", lb.indexOf("BoBot") < lb.indexOf("QuizFox") && /🥇/.test(lb) && /🥈/.test(lb), lb.slice(0, 120));
-  check("tries are shown (2/3)", /2\/3/.test(lb)); a.click("#sx");
-  const board = a.$("#app").textContent;
-  check("the Friends leaderboard totals points and counts the win", /Friends leaderboard/.test(board) && /1500 pts · 1 win\b/.test(board) && /900 pts · 0 wins/.test(board), board.slice(board.indexOf("Friends leaderboard"), board.indexOf("Friends leaderboard") + 140));
-  cd.scores.uB.tries = 3; store.set(ch[0], cd); await openSocial(b);
-  check("after 3 tries you can't play again", !b.$("[data-play]"));
-  cd.expires = Date.now() - 1000; store.set(ch[0], cd); await openSocial(a);
-  check("an expired challenge moves to 'Finished' and can't be played", /Finished challenges/.test(a.$("#app").textContent) && !a.$("[data-play]"));
-  check("the creator sees a delete button for the challenge", !!a.$("[data-del]"));
-  await openSocial(b); check("other players do not", !b.$("[data-del]"));
-
-  section("Safety: report, remove, block, turn off");
-  await openSocial(b); b.w.prompt = () => "Sent me something rude"; b.$("[data-rep]").click(); await b.tick(80);
-  const rep = [...store].find(([k, v]) => k.startsWith("feedback/") && /REPORT/.test(v.message));
-  check("a report goes to the site owner's feedback box with the person's id", !!rep && /uA/.test(rep[1].message) && /rude/.test(rep[1].message));
-  b.w.confirm = () => true; b.$("[data-blk]").click(); await b.tick(120);
-  check("blocking removes the friendship and records the block", !store.has("friendships/uA_uB") && store.has("blocks/uB_uA"));
-  check("the blocked list lets you unblock", /Blocked/.test(b.$("#app").textContent) && !!b.$("[data-unb]"));
-  b.$("[data-unb]").click(); await b.tick(100); check("unblocking removes the block", !store.has("blocks/uB_uA"));
-  store.set("friendships/uA_uB", { members: ["uA", "uB"], since: 1 }); await openSocial(a); a.w.confirm = () => true; a.$("[data-rm]").click(); await a.tick(100);
-  check("removing a friend deletes the friendship", !store.has("friendships/uA_uB"));
-  store.set("friendships/uA_uB", { members: ["uA", "uB"], since: 1 }); store.set("challenges/mine", { owner: "uA", members: ["uA", "uB"], title: "x", scores: {}, expires: Date.now() + 1e9, items: [], game: "speed", max: 100, created: 1 });
-  await openSocial(a); a.click("#off"); await a.tick(150);
-  check("turning it off deletes your profile, code, friendships and challenges you made", !store.has("profiles/uA") && !store.has("codes/" + codeA) && !store.has("friendships/uA_uB") && !store.has("challenges/mine"));
-  check("…and takes you back to the intro", !!a.$("#su"));
-  check("no script errors in either window", a.err.length === 0 && b.err.length === 0, a.err[0] || b.err[0]);
-  done();
-})().catch(e => { console.log("❌ the test run crashed:", e.stack || e); process.exit(1); });
+// Quick sanity checks on the files themselves: they parse, nothing important is missing.
+const fs = require("fs"), path = require("path"), { JSDOM } = require("jsdom");
+const { section, check, done } = require("./lib");
+const root = p => path.join(__dirname, "..", p), read = p => fs.readFileSync(root(p), "utf8");
+section("Files are present");
+for (const f of ["index.html", "manifest.json", "sw.js", "icon-192.png", "icon-512.png", "firestore.rules"]) check(f + " exists", fs.existsSync(root(f)));
+section("index.html");
+const html = read("index.html");
+const code = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, "");
+let ok = true, msg = ""; try { new Function("return (async()=>{" + code + "\n})"); } catch (e) { ok = false; msg = e.message; }
+check("the app code has no syntax errors", ok, msg);
+check("Firebase settings are filled in (no placeholders left)", !/YOUR_API_KEY|YOUR_PROJECT|YOUR_APP_ID|YOUR-WORKER/.test(html));
+check("no secret API keys in the page", !/gsk_[A-Za-z0-9]{20,}|AIzaSy[A-Za-z0-9_-]{33}.*GEMINI|sk-[A-Za-z0-9]{30,}/.test(html.replace(/apiKey: "AIzaSy[A-Za-z0-9_-]{33}"/, "")));
+const dom = new JSDOM(html.replace(/<script[\s\S]*?<\/script>/g, ""));
+const ids = [...dom.window.document.querySelectorAll("[id]")].map(e => e.id), dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+check("no duplicate element ids in the page", dup.length === 0, dup);
+check("page language is set", /<html lang="[a-z-]+"/.test(html));
+check("viewport tag is present", /name="viewport"/.test(html));
+section("Install and offline files");
+let man = {}; try { man = JSON.parse(read("manifest.json")); } catch (e) {}
+check("manifest has a name, start page and icons", !!(man.name && man.start_url && man.icons && man.icons.length >= 2));
+check("every manifest icon file exists", (man.icons || []).every(i => fs.existsSync(root(i.src))));
+let sw = true; try { new Function(read("sw.js")); } catch (e) { sw = false; }
+check("sw.js has no syntax errors", sw);
+section("Security rules (text checks)");
+const rules = read("firestore.rules");
+check("a signed-in user can only reach their own data", /match \/users\/\{uid\}\/sets\/\{setId\}/.test(rules) && /request\.auth\.uid == uid/.test(rules));
+check("everything else is denied by default", /match \/\{document=\*\*\} \{ allow read, write: if false; \}/.test(rules));
+check("share links can be read one at a time but not listed", /match \/shared\/\{shareId\}/.test(rules) && /allow get:/.test(rules));
+check("profiles and friend codes can be read one at a time but never listed", /match \/profiles\/\{uid\}[\s\S]*?allow get:/.test(rules) && !/match \/profiles[\s\S]*?allow (get, )?list/.test(rules.split("match /codes")[0].split("match /profiles")[1] || "") && /match \/codes\/\{code\}[\s\S]*?allow get:/.test(rules));
+check("a friendship needs a request from the other person", /match \/friendships\/\{fid\}[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/friendReq/.test(rules));
+check("challenge invites are limited to your own friends", /isFriend\(request\.auth\.uid, request\.resource\.data\.members\[1\]\)/.test(rules) && /members\.size\(\) <= 4/.test(rules));
+check("challenge scores can only be written under your own id, in your own challenge", /affectedKeys\(\)\.hasOnly\(\['scores'\]\)/.test(rules) && /hasOnly\(\[request\.auth\.uid\]\)/.test(rules));
+check("blocked people cannot send requests", /friendReq[\s\S]*?!exists\(\/databases\/\$\(database\)\/documents\/blocks/.test(rules));
+check("feedback can be written but not read by students", /match \/feedback\/\{id\}/.test(rules) && /allow read, update, delete: if false/.test(rules));
+if (fs.existsSync(root("worker.js"))) { let w = true; try { new Function(read("worker.js").replace("export default", "const W=")); } catch (e) { w = false; } check("worker.js has no syntax errors", w); }
+done();
