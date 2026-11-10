@@ -29,8 +29,8 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   check("sidebar lists 5 sets with a 'Show all' button", a.$$("#snav [data-set]").length === 5 && /Show all \(7\)/.test(a.$("#snav [data-act=all]").textContent));
   a.click("#snav [data-act=all]"); check("'Show all' lists every set", a.$$("#snav [data-set]").length === 7);
   await openFirst(a);
-  check("inside a set the sidebar shows only the main tabs", a.$$("#snav [data-tab]").map(b => b.dataset.tab).join() === "notes,visuals,cards,quiz");
-  a.click("#snav [data-act=more]"); check("'More' reveals Progress, Edit, My notes, Add notes", a.$$("#snav [data-tab]").length === 8);
+  check("inside a set the sidebar shows only the main tabs", a.$$("#snav [data-tab]").map(b => b.dataset.tab).join() === "notes,visuals,cards,quiz,games");
+  a.click("#snav [data-act=more]"); check("'More' reveals Progress, Edit, My notes, Add notes", a.$$("#snav [data-tab]").length === 9);
   check("the set title has one ⋯ options button", !!a.$("#opt") && !a.$("#rn") && !a.$("#sj"));
   a.click("#opt"); check("the options menu has Rename, Subject, Share, Study guide", ["so-rn", "so-sj", "so-sh", "so-pg"].every(s => a.$("#" + s))); a.click("#sx");
   await tab(a, "notes");
@@ -105,7 +105,7 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   const sid2 = "ab".repeat(16);
   a = await boot({ seed: { ["shared/" + sid2]: sh }, url: "https://x.github.io/app/?s=" + sid2 }); await a.signOutNow();
   check("a signed-out visitor can open a shared link", /Shared study set/.test(a.$("#app").textContent) && /Shared set/.test(a.$("#app").textContent));
-  check("…read-only: no edit/add tabs and no library button", a.$$("#snav [data-tab]").map(b => b.dataset.tab).join() === "notes,visuals,cards,quiz" && !a.$("#snav [data-go]") && !a.$("#snav [data-act=more]"));
+  check("…read-only: no edit/add tabs and no library button", a.$$("#snav [data-tab]").map(b => b.dataset.tab).join() === "notes,visuals,cards,quiz,games" && !a.$("#snav [data-go]") && !a.$("#snav [data-act=more]"));
   a.click("#opt"); check("…and its options menu offers only the study guide", !a.$("#so-sh") && !a.$("#so-rn") && !!a.$("#so-pg")); a.click("#sx");
   a = await boot({ url: "https://x.github.io/app/?s=" + "cd".repeat(16) }); await a.signOutNow();
   check("a missing or expired link shows a friendly message", /isn’t available/.test(a.$("#app").textContent));
