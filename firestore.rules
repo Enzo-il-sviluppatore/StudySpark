@@ -117,6 +117,24 @@ service cloud.firestore {
         && request.resource.data.scores[request.auth.uid].nick.size() <= 16;
       allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
     }
+    // A duel is a 1-versus-1 quiz fight between two friends. Each player may only write their own moves.
+    match /duels/{did} {
+      allow get, list: if request.auth != null && request.auth.uid in resource.data.players;
+      allow create: if request.auth != null
+        && request.resource.data.a == request.auth.uid
+        && request.resource.data.b is string && request.resource.data.b != request.auth.uid
+        && request.resource.data.players == [request.auth.uid, request.resource.data.b]
+        && isFriend(request.auth.uid, request.resource.data.b)
+        && request.resource.data.items is list && request.resource.data.items.size() <= 12
+        && request.resource.data.title is string && request.resource.data.title.size() <= 60
+        && request.resource.data.expires is number && request.resource.data.expires <= request.time.toMillis() + 1209600000
+        && request.resource.data.movesA == {} && request.resource.data.movesB == {}
+        && request.resource.data.keys().size() <= 16;
+      allow update: if request.auth != null && request.time.toMillis() < resource.data.expires
+        && ((resource.data.a == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['movesA']) && request.resource.data.movesA.size() <= 12)
+         || (resource.data.b == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['movesB']) && request.resource.data.movesB.size() <= 12));
+      allow delete: if request.auth != null && resource.data.a == request.auth.uid;
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
