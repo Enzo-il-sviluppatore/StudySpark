@@ -27,6 +27,12 @@ const rules = read("firestore.rules");
 check("a signed-in user can only reach their own data", /match \/users\/\{uid\}\/sets\/\{setId\}/.test(rules) && /request\.auth\.uid == uid/.test(rules));
 check("everything else is denied by default", /match \/\{document=\*\*\} \{ allow read, write: if false; \}/.test(rules));
 check("share links can be read one at a time but not listed", /match \/shared\/\{shareId\}/.test(rules) && /allow get:/.test(rules));
+check("profiles and friend codes can be read one at a time but never listed", /match \/profiles\/\{uid\}[\s\S]*?allow get:/.test(rules) && !/match \/profiles[\s\S]*?allow (get, )?list/.test(rules.split("match /codes")[0].split("match /profiles")[1] || "") && /match \/codes\/\{code\}[\s\S]*?allow get:/.test(rules));
+check("a friendship needs a request from the other person", /match \/friendships\/\{fid\}[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/friendReq/.test(rules));
+check("challenge invites are limited to your own friends", /isFriend\(request\.auth\.uid, request\.resource\.data\.members\[1\]\)/.test(rules) && /members\.size\(\) <= 4/.test(rules));
+check("challenge scores can only be written under your own id, in your own challenge", /affectedKeys\(\)\.hasOnly\(\['scores'\]\)/.test(rules) && /hasOnly\(\[request\.auth\.uid\]\)/.test(rules));
+check("blocked people cannot send requests", /friendReq[\s\S]*?!exists\(\/databases\/\$\(database\)\/documents\/blocks/.test(rules));
+check("duels can only be started with your own friend and each player writes only their own moves", /match \/duels\/\{did\}/.test(rules) && /isFriend\(request\.auth\.uid, request\.resource\.data\.b\)/.test(rules) && /hasOnly\(\['movesA'\]\)/.test(rules) && /hasOnly\(\['movesB'\]\)/.test(rules));
 check("feedback can be written but not read by students", /match \/feedback\/\{id\}/.test(rules) && /allow read, update, delete: if false/.test(rules));
 if (fs.existsSync(root("worker.js"))) { let w = true; try { new Function(read("worker.js").replace("export default", "const W=")); } catch (e) { w = false; } check("worker.js has no syntax errors", w); }
 done();
