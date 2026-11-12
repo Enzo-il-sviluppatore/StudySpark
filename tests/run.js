@@ -1,6 +1,6 @@
 // Runs every test file and prints a short summary. Exit code is 1 if anything failed.
 const { spawnSync } = require("child_process"), path = require("path");
-const files = ["static.test.js", "worker.test.js", "app.test.js", "social.test.js"];
+const files = ["static.test.js", "worker.test.js", "app.test.js", "social.test.js", "duel.test.js"];
 let bad = [];
 for (const f of files) {
   console.log("\n==================== " + f + " ====================");
