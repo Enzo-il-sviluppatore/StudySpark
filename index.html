@@ -130,6 +130,8 @@ h1 .sp{background:linear-gradient(180deg,#fffbd0,#fbbf24);-webkit-background-cli
 .gbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:8px}.gbar i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#f59e0b,#ef4444);transition:width 1s linear;animation:none}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mt{width:100%;margin:4px 0;text-align:left}.mt.on{background:var(--brand);color:var(--onb)}.mt.done{opacity:.35}
 .lbr{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px}.lbr.me{background:color-mix(in srgb,var(--brand) 14%,transparent)}.gcard{min-height:150px}
+.duel{display:flex;align-items:center;gap:10px;margin:8px 0}.fighter{flex:1}.hp{height:14px;background:var(--line);border-radius:8px;overflow:hidden;margin:4px 0}.hp i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b 50%,#10b981);transition:width .6s}
+.vs{font-weight:800;color:var(--mute)}.dbtn{flex:1;font-size:1.1rem;padding:14px 12px}.dbtn small{font-weight:400}
 </style>
 </head>
 <body>
@@ -173,7 +175,7 @@ const SOCIAL_ENABLED = true; // set to false to hide Games & friends (challenges
 /* ============================================== */
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,deleteDoc,query,orderBy,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,where} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,deleteDoc,query,orderBy,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,where,onSnapshot} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $=s=>document.querySelector(s), app=$("#app");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1130,7 +1132,9 @@ const BADGES=[
  {id:"chat",i:"💬",n:"Curious mind",d:"Ask the tutor 10 questions",p:(s)=>[s.n.chat||0,10]},
  {id:"game",i:"🎮",n:"Game on",d:"Play a study game",p:(s)=>[s.n.game||0,1]},
  {id:"rival",i:"🤝",n:"Friendly rival",d:"Play a friend challenge",p:(s)=>[s.n.challenge||0,1]},
- {id:"champ",i:"👑",n:"Champion",d:"Top the leaderboard in a challenge",p:(s)=>[s.n.win||0,1]}];
+ {id:"champ",i:"👑",n:"Champion",d:"Top the leaderboard in a challenge",p:(s)=>[s.n.win||0,1]},
+ {id:"duel",i:"⚔️",n:"Duelist",d:"Finish a quiz duel",p:(s)=>[s.n.duel||0,1]},
+ {id:"duelwin",i:"🛡️",n:"Last one standing",d:"Win a quiz duel",p:(s)=>[s.n.duelwin||0,1]}];
 const badgeDone=(b,si)=>{const[a,t]=b.p(ST,si);return a>=t};
 function saveStats(){
   if(!user)return;
@@ -1504,7 +1508,7 @@ const HOWTO=[
  ["🤖 Get help",["The 🤖 tutor gives hints and explanations, not homework answers.","Highlight text and tap <b>Ask AI</b>, or press 💡 on a concept or flashcard to see it explained another way and turn it into flashcards or quiz questions."]],
  ["📅 Stay on track",["Pick a <b>learn-by date</b> under <b>More → 📊 Progress</b> to get a daily plan.","Your 🔥 streak and 🏅 badges are in the sidebar. The ⏱ timer helps you focus in short rounds.","<b>⋯ → Study guide (PDF)</b> makes a printable summary."]],
  ["⚙️ Make it yours",["<b>Settings</b> has themes, fonts (including dyslexia-friendly), text size, sound and quiz options.","<b>⋯ → Get the app</b> adds StudySpark to your home screen. Sets you have opened still work offline."]],
- ["🎮 Games &amp; friends",["Every set has a <b>🎮 Games</b> tab with <b>⚡ Speed Round</b> and <b>🧩 Match</b>, played with your own flashcards and questions.","Open <b>🎮 Games &amp; friends</b> in the sidebar to get a private friend code, add friends, and challenge them. Each challenge has a leaderboard.","It’s optional, there’s no chat, and you can block or remove anyone."]],
+ ["🎮 Games &amp; friends",["Every set has a <b>🎮 Games</b> tab with <b>⚡ Speed Round</b> and <b>🧩 Match</b>, played with your own flashcards and questions.","Open <b>🎮 Games &amp; friends</b> in the sidebar to get a private friend code, add friends, and challenge them. Each challenge has a leaderboard.","<b>⚔️ Quiz Duel</b>: answer right to Attack or Block; answer wrong and you wait and see what your opponent did. Practise against a bot or duel a friend.","It’s optional, there’s no chat, and you can block or remove anyone."]],
  ["🔒 Keep it safe",["Back up your sets in <b>Settings → Your data</b>. You can also delete everything there.","<b>⋯ → Share</b> makes a read-only link for classmates or a teacher. Stop sharing any time.","Don’t put private information in your notes."]],
  ["❓ Something wrong?",["If a set doesn’t generate, try again or use shorter notes. Daily limits reset at midnight UTC.","The AI can make mistakes, so check it against your notes. Fix cards and questions under <b>More → ✏️ Edit</b>.","Tell us what’s broken or confusing with <b>⋯ → 💬 Send feedback</b>."]]];
 const howtoBody=()=>HOWTO.map(([h,l])=>`<h3>${h}</h3><ul>${l.map(x=>`<li>${x}</li>`).join("")}</ul>`).join("");
@@ -1556,7 +1560,7 @@ function openFeedback(){
 $("#howto").onclick=openHowTo;$("#fbk").onclick=openFeedback;
 
 /* ---------- Games & friends ---------- */
-let ME=null,socialOpen=false;const SOC={friends:[],incoming:[],outgoing:[],challenges:[],blocked:[]},PROF={};
+let ME=null,socialOpen=false;const SOC={friends:[],incoming:[],outgoing:[],challenges:[],blocked:[],duels:[]},PROF={};
 const EMOJIS=["🦊","🐼","🐯","🦄","🐙","🦉","🐸","🐧","🦁","🐢","🚀","⭐"],CODE_CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const pairId=(a,b)=>a<b?a+"_"+b:b+"_"+a,clip=(t,n)=>String(t).length>n?String(t).slice(0,n-1)+"…":String(t);
 const newCode=()=>{const a=new Uint8Array(8);crypto.getRandomValues(a);return [...a].map(x=>CODE_CHARS[x%CODE_CHARS.length]).join("")};
@@ -1580,10 +1584,11 @@ async function loadMe(){
 }
 async function refreshSocial(){
   const uid=user.uid,q=(c,f,o,v)=>getDocs(query(collection(db,c),where(f,o,v)));
-  const [fr,inc,out,chs,bl]=await Promise.all([q("friendships","members","array-contains",uid),q("friendReq","to","==",uid),q("friendReq","from","==",uid),q("challenges","members","array-contains",uid),q("blocks","blocker","==",uid)]);
+  const [fr,inc,out,chs,bl,du]=await Promise.all([q("friendships","members","array-contains",uid),q("friendReq","to","==",uid),q("friendReq","from","==",uid),q("challenges","members","array-contains",uid),q("blocks","blocker","==",uid),q("duels","players","array-contains",uid)]);
   SOC.friends=await Promise.all(fr.docs.map(async d=>{const o=d.data().members.find(x=>x!==uid);return{uid:o,fid:d.id,...(await prof(o))}}));
   SOC.incoming=inc.docs.map(d=>({id:d.id,...d.data()}));SOC.outgoing=out.docs.map(d=>({id:d.id,...d.data()}));
   SOC.challenges=chs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);
+  SOC.duels=du.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);
   SOC.blocked=await Promise.all(bl.docs.map(async d=>({id:d.id,uid:d.data().blocked,...(await prof(d.data().blocked))})));
 }
 /* --- setup / edit profile --- */
@@ -1641,6 +1646,7 @@ function drawSocial(){
   const chRow=c=>{const s=(c.scores||{})[mine],rank=Object.values(c.scores||{}).sort((a,b)=>b.best-a.best),left=daysLeftCh(c),can=c.expires>=Date.now()&&(s?.tries||0)<3;
     return `<div class="card sec" style="--c:#0369a1"><b>${c.game==="speed"?"⚡":"🧩"} ${esc(c.title)}</b><br><span class="mute">${esc(c.ownerNick||"A friend")} · ${c.members.length} players · ${c.expires<Date.now()?"ended":left+" day"+(left===1?"":"s")+" left"}${s?` · your best ${s.best} (${s.tries}/3 tries)`:" · you haven’t played yet"}</span>
     <p>${can?`<button data-play="${c.id}">▶ ${s?"Play again":"Play"}</button> `:""}<button class="alt" data-lb="${c.id}">🏆 Leaderboard${rank.length?" ("+rank.length+")":""}</button>${c.owner===mine?` <button class="alt" data-del="${c.id}" aria-label="Delete this challenge">🗑</button>`:""}</p></div>`};
+  const duelRow=x=>{const o=x.a===mine?"b":"a";return `<div class="card sec" style="--c:#be185d"><b>⚔️ ${esc(x.title)}</b><br><span class="mute">vs ${esc(x[o+"Emoji"]||"🙂")} ${esc(x[o+"Nick"]||"Friend")} · ${esc(duelLine(x))}</span><p><button data-duel="${esc(x.id)}">${duelState(x).over||x.expires<Date.now()?"View":"▶ Play"}</button>${x.a===mine?` <button class="alt" data-ddel="${esc(x.id)}" aria-label="Delete this duel">🗑</button>`:""}</p></div>`};
   app.innerHTML=`<h2>🎮 Games &amp; friends</h2>
   <div class="card hero"><div class="row"><span style="font-size:1.3rem">${esc(ME.emoji)} <b>${esc(ME.nick)}</b></span><button class="alt" id="ep">✏️ Edit</button></div>
   <p>Your friend code: <b style="font-size:1.2rem;letter-spacing:.08em">${fmtCode(ME.code)}</b> <button class="alt" id="cc" aria-label="Copy my friend code">📋 Copy</button></p><p class="mute">Share this code with people you know. They’ll send you a request that you can accept or decline.</p></div>
@@ -1651,6 +1657,7 @@ function drawSocial(){
   ${board.length>1?`<div class="card"><h3 style="margin-top:0">🏆 Friends leaderboard</h3><p class="mute">Total points and wins across your challenges.</p>${board.map(([u,a],i)=>`<div class="lbr ${u===mine?"me":""}"><span>${["🥇","🥈","🥉"][i]||i+1}</span><span style="flex:1">${esc(a.emoji)} ${esc(a.nick)}${u===mine?" (you)":""}</span><span>${a.points} pts · ${a.wins} win${a.wins===1?"":"s"}</span></div>`).join("")}</div>`:""}
   <h3>⚔️ Challenges</h3>${act.length?act.map(chRow).join(""):'<p class="mute">No active challenges. Open a set, go to <b>🎮 Games</b> and challenge your friends.</p>'}
   ${past.length?`<details class="card"><summary><b>Finished challenges (${past.length})</b></summary>${past.map(chRow).join("")}</details>`:""}
+  <h3>🗡️ Duels</h3>${SOC.duels.length?SOC.duels.map(duelRow).join(""):'<p class="mute">No duels yet. Open a set, go to <b>🎮 Games</b> and duel a friend.</p>'}
   <details class="card"><summary><b>⚙️ Privacy &amp; safety</b></summary><p class="mute">Friends see only your nickname and avatar. Challenge questions are shared only with the friends you invite. Scores are on the honor system. Report or block anyone who makes you uncomfortable.</p>${SOC.blocked.length?`<p><b>Blocked:</b></p>${SOC.blocked.map(b=>`<div class="row"><span>${esc(b.emoji)} ${esc(b.nick)}</span><button class="alt" data-unb="${esc(b.id)}">Unblock</button></div>`).join("")}`:""}<p><button class="alt" id="off">Turn off Games &amp; friends and delete my profile</button></p></details>`;
   const go=async(fn,msg)=>{try{await fn();if(msg)toast(msg);await refreshSocial();drawSocial()}catch(e){toast("That didn’t work: "+(e.code||e.message))}};
   $("#ep").onclick=()=>openSocialSetup(true);
@@ -1666,6 +1673,8 @@ function drawSocial(){
   app.querySelectorAll("[data-rep]").forEach(b=>b.onclick=async()=>{const why=(prompt("What’s the problem? (This goes to the site owner.)")||"").trim();if(!why)return;
     const f=SOC.friends.find(x=>x.uid===b.dataset.rep);try{await addDoc(collection(db,"feedback"),{type:"other",message:("REPORT about "+(f?f.nick:"a friend")+" ("+b.dataset.rep+"): "+why).slice(0,1400),at:Date.now(),v:APP_VERSION});toast("Thanks, we’ll look into it.")}catch(e){toast("Couldn’t send the report.")}});
   app.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playChallenge(SOC.challenges.find(c=>c.id===b.dataset.play)));
+  app.querySelectorAll("[data-duel]").forEach(b=>b.onclick=()=>openDuel(b.dataset.duel));
+  app.querySelectorAll("[data-ddel]").forEach(b=>b.onclick=()=>{if(confirm("Delete this duel for both players?"))go(()=>deleteDoc(doc(db,"duels",b.dataset.ddel)),"Duel deleted.")});
   app.querySelectorAll("[data-lb]").forEach(b=>b.onclick=()=>showBoard(SOC.challenges.find(c=>c.id===b.dataset.lb)));
   app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this challenge for everyone?"))go(()=>deleteDoc(doc(db,"challenges",b.dataset.del)),"Challenge deleted.")});
   $("#off").onclick=async()=>{if(!confirm("Turn off Games & friends? This deletes your profile, friend code and friendships, and challenges you created."))return;try{await deleteSocial();toast("Games & friends is off and your profile was deleted.");openSocial()}catch(e){toast("Couldn’t finish: "+(e.code||e.message))}};
@@ -1682,15 +1691,15 @@ async function sendRequest(raw){
 }
 async function deleteSocial(){
   const uid=user.uid,q=(c,f,o,v)=>getDocs(query(collection(db,c),where(f,o,v)));
-  const [fr,a,b,ch,bl]=await Promise.all([q("friendships","members","array-contains",uid),q("friendReq","to","==",uid),q("friendReq","from","==",uid),q("challenges","members","array-contains",uid),q("blocks","blocker","==",uid)]);
-  await Promise.all([...fr.docs,...a.docs,...b.docs,...bl.docs,...ch.docs.filter(d=>d.data().owner===uid)].map(d=>deleteDoc(d.ref)));
+  const [fr,a,b,ch,bl,du]=await Promise.all([q("friendships","members","array-contains",uid),q("friendReq","to","==",uid),q("friendReq","from","==",uid),q("challenges","members","array-contains",uid),q("blocks","blocker","==",uid),q("duels","players","array-contains",uid)]);
+  await Promise.all([...fr.docs,...a.docs,...b.docs,...bl.docs,...ch.docs.filter(d=>d.data().owner===uid),...du.docs.filter(d=>d.data().a===uid)].map(d=>deleteDoc(d.ref)));
   if(ME&&ME.code)await deleteDoc(doc(db,"codes",ME.code)).catch(()=>{});
   await deleteDoc(doc(db,"profiles",uid)).catch(()=>{});
-  ME=null;SOC.friends=[];SOC.incoming=[];SOC.outgoing=[];SOC.challenges=[];SOC.blocked=[];
+  ME=null;SOC.friends=[];SOC.incoming=[];SOC.outgoing=[];SOC.challenges=[];SOC.blocked=[];SOC.duels=[];
 }
 /* --- game engines --- */
 let GM={t:null};
-function stopGame(){if(GM.t){clearInterval(GM.t);GM.t=null}}
+function stopGame(){if(GM.t){clearInterval(GM.t);GM.t=null}if(GM.off){GM.off();GM.off=null}}
 function speedPool(st,max=30){
   const out=[],cards=(st.cards||[]).filter(c=>c.front&&c.back),backs=[...new Set(cards.map(c=>clip(c.back,70)))];
   cards.forEach(c=>{const ans=clip(c.back,70),wr=shuf(backs.filter(b=>b!==ans)).slice(0,3);if(wr.length===3){const o=shuf([ans,...wr]);out.push({q:clip(c.front,160),options:o,answer:o.indexOf(ans)})}});
@@ -1784,10 +1793,12 @@ function showBoard(c){
 function gamesTab(p){
   const sp=speedPool(cur).length,mp=matchPool(cur).length,g=cur.meta?.games||{},own=!cur.shared&&cur.id;
   const tile=(k,ico,name,desc,ok,need)=>`<div class="card gcard"><h3 style="margin-top:0">${ico} ${name}</h3><p class="mute">${desc}</p><p>Your best: <b>${g[k]?.best??"—"}</b></p>${ok?`<button data-g="${k}">▶ Play</button>${SOCIAL_ENABLED&&own&&user?` <button class="alt" data-c="${k}">👥 Challenge friends</button>`:""}`:`<p class="mute">${need}</p>`}</div>`;
-  p.innerHTML=`<div class="grid">${tile("speed","⚡","Speed Round","60 seconds. Pick the right answer as fast as you can. Streaks earn bonus points.",sp>=4,"Needs at least 4 flashcards (or multiple-choice questions) with different answers.")}${tile("match","🧩","Match","Match each term to its definition. Faster and fewer mistakes score higher.",mp>=4,"Needs at least 4 flashcards.")}</div>
+  const dp=speedPool(cur,10).length,dtile=`<div class="card gcard"><h3 style="margin-top:0">⚔️ Quiz Duel</h3><p class="mute">Answer right to <b>Attack</b> or <b>Block</b>. Answer wrong and you just wait and see what your opponent did. Last one standing wins.</p>${dp>=4?`<button data-d="bot">▶ Practice vs bot</button>${SOCIAL_ENABLED&&own&&user?` <button class="alt" data-d="friend">👥 Duel a friend</button>`:""}`:`<p class="mute">Needs at least 4 flashcards (or multiple-choice questions) with different answers.</p>`}</div>`;
+  p.innerHTML=`<div class="grid">${tile("speed","⚡","Speed Round","60 seconds. Pick the right answer as fast as you can. Streaks earn bonus points.",sp>=4,"Needs at least 4 flashcards (or multiple-choice questions) with different answers.")}${tile("match","🧩","Match","Match each term to its definition. Faster and fewer mistakes score higher.",mp>=4,"Needs at least 4 flashcards.")}${dtile}</div>
   <p class="mute">Games use the flashcards and questions in this set.</p>`;
   p.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>playSolo(b.dataset.g));
   p.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>openChallengeSetup(b.dataset.c));
+  p.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>b.dataset.d==="bot"?startBotDuel():openDuelSetup());
 }
 async function openChallengeSetup(kind){
   if(!ME)return openSocialSetup(false);
@@ -1812,6 +1823,109 @@ async function openChallengeSetup(kind){
       await addDoc(collection(db,"challenges"),{owner:user.uid,ownerNick:ME.nick,members:[user.uid,...picked],game:kind,title:cur.title.slice(0,60),created:Date.now(),expires:Date.now()+days*864e5,max:kind==="speed"?items.length*200:3000,items,scores:{},v:1});
       m.remove();toast("Challenge sent!");openSocial();
     }catch(x){$("#cgo").disabled=false;toast("Couldn’t send the challenge: "+(x.code||x.message))}
+  };
+  document.body.appendChild(m);
+}
+
+/* ---------- Quiz Duel (answer right, then Attack or Block) ---------- */
+const DUEL={dmg:25,counter:10,hp:100,time:20,act:10,hold:2800};
+function duelState(d){
+  const n=d.items.length,mA=d.movesA||{},mB=d.movesB||{};let a=DUEL.hp,b=DUEL.hp;const log=[];
+  for(let r=0;r<n;r++){
+    const x=mA[r],y=mB[r];if(!x||!y)break;
+    const ok=m=>Number.isInteger(m.ans)&&m.ans===d.items[r].answer,okA=ok(x),okB=ok(y);
+    const ax=okA&&x.act==="attack"?"attack":okA&&x.act==="block"?"block":"none",by=okB&&y.act==="attack"?"attack":okB&&y.act==="block"?"block":"none";
+    let da=0,db=0;
+    if(by==="attack"){if(ax==="block")db+=DUEL.counter;else da+=DUEL.dmg}
+    if(ax==="attack"){if(by==="block")da+=DUEL.counter;else db+=DUEL.dmg}
+    a=Math.max(0,a-da);b=Math.max(0,b-db);log.push({r,ax,by,okA,okB,da,db,a,b});
+    if(a===0||b===0)break;
+  }
+  const over=a===0||b===0||log.length>=n;
+  return{a,b,log,next:log.length,over,winner:over?(a>b?"a":b>a?"b":"draw"):null};
+}
+const botMove=it=>{const ok=Math.random()<.6;return{ans:ok?it.answer:(it.answer+1)%it.options.length,act:ok?(Math.random()<.65?"attack":"block"):"none"}};
+function startBotDuel(){
+  const items=speedPool(cur,10);if(items.length<4)return toast("This set needs at least 4 flashcards or questions.");
+  const d={a:"me",b:"bot",aNick:"You",bNick:"Study Bot",aEmoji:ME?ME.emoji:"🙂",bEmoji:"🤖",title:cur.title,items,movesA:{},movesB:{}},subs=new Set();
+  const emit=()=>setTimeout(()=>subs.forEach(f=>f({...d})),0);
+  runDuel({side:"a",listen:f=>{subs.add(f);emit();return()=>subs.delete(f)},submit:async(r,mv)=>{d.movesA={...d.movesA,[r]:mv};emit();setTimeout(()=>{if(!d.movesB[r]){d.movesB={...d.movesB,[r]:botMove(items[r])};emit()}},900+Math.random()*1600)}},d.title);
+}
+async function openDuel(id){
+  try{
+    const snap=await getDoc(doc(db,"duels",id));if(!snap.exists())return toast("This duel isn’t available any more.");
+    const d0=snap.data(),side=d0.a===user.uid?"a":"b";
+    runDuel({side,listen:f=>onSnapshot(doc(db,"duels",id),s=>{if(s.exists())f({id,...s.data()})}),submit:(r,mv)=>setDoc(doc(db,"duels",id),{["moves"+side.toUpperCase()]:{[r]:mv}},{merge:true})},d0.title);
+  }catch(e){toast("Couldn’t open the duel: "+(e.code||e.message))}
+}
+function runDuel(T,title){
+  socialOpen=false;stopListen();stopGame();
+  app.innerHTML=`<p><button class="alt" id="gq">← Leave duel</button></p><h2>⚔️ Quiz Duel <small class="mute">· ${esc(clip(title,40))}</small></h2><div id="game"></div>`;
+  let d=null,seen=null,startedOver=false,hold=0,lastSum=null,finished=false,qLeft=DUEL.time,aLeft=DUEL.act,curR=-1;const L={};
+  const me=T.side,opp=me==="a"?"b":"a",key="moves"+me.toUpperCase(),oppName=()=>d?(d[opp+"Nick"]||"Opponent"):"Opponent";
+  let unsub=T.listen(nd=>{d=nd;draw()});GM.off=()=>{if(unsub){unsub();unsub=null}};
+  $("#gq").onclick=()=>{stopGame();if(cur)study();else openSocial()};
+  const send=(r,mv)=>{L[r]={...L[r],sent:mv};draw();Promise.resolve(T.submit(r,mv)).catch(e=>toast("Couldn’t send your move: "+(e.code||e.message)))};
+  const pick=(r,k)=>{const ok=k===d.items[r].answer;L[r]={ans:k,ok};ok?sfx.correct():sfx.wrong();if(ok){aLeft=DUEL.act;draw()}else send(r,{ans:k,act:"none"})};
+  const doAct=(r,a)=>{if(L[r]&&!L[r].sent)send(r,{ans:L[r].ans,act:a})};
+  const bars=S=>["a","b"].map(s=>{const h=s==="a"?S.a:S.b;return `<div class="fighter ${s===me?"me":""}"><div>${esc(d[s+"Emoji"]||"🙂")} <b>${s===me?"You":esc(d[s+"Nick"]||"Opponent")}</b></div><div class="hp" role="progressbar" aria-label="${s===me?"Your":esc(d[s+"Nick"]||"Opponent")} health" aria-valuemin="0" aria-valuemax="${DUEL.hp}" aria-valuenow="${h}"><i style="width:${100*h/DUEL.hp}%"></i></div><span>${h} HP</span></div>`}).join('<div class="vs">VS</div>');
+  const lbl=(ok,a)=>!ok?"❌ answered wrong, no move":a==="attack"?"✅ ⚔️ attacked":a==="block"?"✅ 🛡️ blocked":"✅ made no move";
+  const sumHtml=x=>{const mineA=me==="a",myOk=mineA?x.okA:x.okB,oOk=mineA?x.okB:x.okA,myA=mineA?x.ax:x.by,oA=mineA?x.by:x.ax,myD=mineA?x.da:x.db,oD=mineA?x.db:x.da,it=d.items[x.r];
+    return `<div class="card hero"><h3 style="margin-top:0">Round ${x.r+1} result</h3><p class="mute">Answer: ${esc(it.options[it.answer])}</p><p>You: ${lbl(myOk,myA)}</p><p>${esc(oppName())}: ${lbl(oOk,oA)}</p><p><b>${oD?`${esc(oppName())} takes ${oD} damage. `:""}${myD?`You take ${myD} damage.`:""}${!oD&&!myD?"No damage this round.":""}</b></p></div>`};
+  function draw(){
+    if(!d||!$("#game"))return;const S=duelState(d),r=S.next;if(seen===null){seen=S.log.length;startedOver=S.over}
+    if(S.log.length>seen){seen=S.log.length;lastSum=S.log[seen-1];hold=Date.now()+DUEL.hold;setTimeout(draw,DUEL.hold+50);if(lastSum){const mA=me==="a";(mA?lastSum.db:lastSum.da)?sfx.correct():(mA?lastSum.da:lastSum.db)?sfx.wrong():0}}
+    if(r!==curR){curR=r;qLeft=DUEL.time}
+    const it=d.items[r],mine=(d[key]||{})[r]||(L[r]&&L[r].sent);let body="";
+    if(Date.now()<hold&&lastSum)body=sumHtml(lastSum);
+    else if(S.over){
+      const win=S.winner===me,draws=S.winner==="draw";
+      if(!finished){finished=true;if(!startedOver){markActive("duel");if(win){markActive("duelwin");sfx.win();confetti()}}}
+      body=`<div class="card hero"><h2>${draws?"🤝 It’s a draw!":win?"🏆 You win!":"💥 You lost this time"}</h2><p class="mute">Final health: you ${me==="a"?S.a:S.b} HP, ${esc(oppName())} ${me==="a"?S.b:S.a} HP</p><p><button id="dback">Back</button></p></div>`;
+    }else if(mine){
+      const l=L[r];body=`<div class="card"><p>${l&&l.ok===false?`❌ Not this time. The answer was “${esc(it.options[it.answer])}”. You can’t attack or block this round.`:l&&l.ok?`✅ Correct! You made your move.`:"Your move is in."}</p><p class="mute">Waiting to see what ${esc(oppName())} did…</p></div>`;
+    }else if(L[r]&&L[r].ok){
+      body=`<div class="card"><p>✅ <b>Correct!</b> Choose your move <span class="mute">(<span id="dt">${aLeft}</span>s)</span></p><div class="row"><button class="dbtn" data-a="attack">⚔️ Attack<br><small>${DUEL.dmg} damage</small></button><button class="dbtn alt" data-a="block">🛡️ Block<br><small>cancel their attack, hit back for ${DUEL.counter}</small></button></div></div>`;
+    }else{
+      body=`<p class="mute">Round ${r+1} of ${d.items.length} · <b>⏱ <span id="dt">${qLeft}</span>s</b></p><div class="card"><b style="font-size:1.15rem">${esc(it.q)}</b>${it.options.map((o,k)=>`<button class="alt opt" data-k="${k}" style="margin-top:8px">${esc(o)}</button>`).join("")}</div><p class="mute">Answer right to Attack or Block. Answer wrong and you just wait and see.</p>`;
+    }
+    $("#game").innerHTML=`<div class="duel">${bars(S)}</div>${body}`;
+    $("#game").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>pick(r,+b.dataset.k));
+    $("#game").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>doAct(r,b.dataset.a));
+    if($("#dback"))$("#dback").onclick=()=>{stopGame();if(cur)study();else openSocial()};
+  }
+  GM.t=setInterval(()=>{
+    if(!d||finished)return;const S=duelState(d),r=S.next;if(S.over||Date.now()<hold)return;
+    if((d[key]||{})[r]||(L[r]&&L[r].sent))return;
+    if(L[r]&&L[r].ok){aLeft--;const e=$("#dt");if(e)e.textContent=aLeft;if(aLeft<=0)doAct(r,"none")}
+    else{qLeft--;const e=$("#dt");if(e)e.textContent=Math.max(0,qLeft);if(qLeft<=0){L[r]={ans:-1,ok:false};send(r,{ans:-1,act:"none"})}}
+  },1000);
+}
+function duelLine(d){
+  const S=duelState(d),me=d.a===user.uid?"a":"b",opp=me==="a"?"b":"a",mineSent=(d["moves"+me.toUpperCase()]||{})[S.next];
+  if(S.over)return S.winner==="draw"?"🤝 Draw":S.winner===me?"🏆 You won":"💥 You lost";
+  if(d.expires<Date.now())return "Ended";
+  return mineSent?"⏳ Waiting for "+(d[opp+"Nick"]||"your friend"):"🟢 Your move (round "+(S.next+1)+" of "+d.items.length+")";
+}
+async function openDuelSetup(){
+  if(!ME)return openSocialSetup(false);
+  try{await refreshSocial()}catch(e){return toast("Couldn’t load your friends.")}
+  if(!SOC.friends.length){toast("Add a friend first, then you can duel them.");return openSocial()}
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","New duel");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">⚔️ Duel a friend</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <p class="mute">Both of you answer the same questions from “${esc(clip(cur.title,40))}”. Answer right to Attack or Block. Answer wrong and you just wait and see what they did. You can play at the same time or one after the other, and it stays open for 7 days.</p>
+  <p><b>Who do you want to duel?</b></p>${SOC.friends.map((f,i)=>`<label class="row"><span>${esc(f.emoji)} ${esc(f.nick)}</span><input type="radio" name="df" value="${esc(f.uid)}" ${i===0?"checked":""}></label>`).join("")}
+  <p class="mute">The questions and answers in this duel are shared with that friend.</p><p><button id="dgo">Start duel</button></p></div>`;
+  m.onclick=async e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();if(e.target.id!=="dgo")return;
+    const fid=(m.querySelector("[name=df]:checked")||{}).value,fr=SOC.friends.find(f=>f.uid===fid);if(!fr)return toast("Pick a friend.");
+    const items=speedPool(cur,10);if(items.length<4)return toast("This set doesn’t have enough content for a duel.");
+    $("#dgo").disabled=true;
+    try{
+      const ref=await addDoc(collection(db,"duels"),{players:[user.uid,fid],a:user.uid,b:fid,aNick:ME.nick,bNick:fr.nick,aEmoji:ME.emoji,bEmoji:fr.emoji,title:cur.title.slice(0,60),items,created:Date.now(),expires:Date.now()+7*864e5,movesA:{},movesB:{},v:1});
+      m.remove();openDuel(ref.id);
+    }catch(x){$("#dgo").disabled=false;toast("Couldn’t start the duel: "+(x.code||x.message))}
   };
   document.body.appendChild(m);
 }
