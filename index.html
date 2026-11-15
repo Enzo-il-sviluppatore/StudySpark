@@ -6,7 +6,7 @@
 <title>StudySpark</title>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#5b4bdb"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
-:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#68708a;--brand:#5b4bdb;--onb:#fff;--ok:#0f7a43;--bad:#b91c1c;--red:#b91c1c;--amber:#92400e;--green:#047857;--on-ok:#fff;--on-bad:#fff;--line:#e3e6f0}
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#5a6280;--brand:#5b4bdb;--onb:#fff;--ok:#0f7a43;--bad:#b91c1c;--red:#b91c1c;--amber:#92400e;--green:#047857;--on-ok:#fff;--on-bad:#fff;--line:#e3e6f0}
 :root[data-theme=contrast]{--bg:#fff;--card:#fff;--ink:#000;--mute:#333;--line:#000;--brand:#0000cc;--ok:#005a00;--bad:#a80000;--red:#a80000;--amber:#6b3a00;--green:#005a00;--on-ok:#fff;--on-bad:#fff}:root[data-theme=contrast] .card{border-width:2px}
 :root[data-theme=dark]{--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff;--ok:#4ade80;--bad:#f87171;--red:#f87171;--amber:#fbbf24;--green:#4ade80;--on-ok:#0b1f12;--on-bad:#0b1f12;color-scheme:dark}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12141f;--card:#1b1e2e;--ink:#eceefa;--mute:#9aa2bf;--line:#2c3047;--brand:#8f82ff;--ok:#4ade80;--bad:#f87171;--red:#f87171;--amber:#fbbf24;--green:#4ade80;--on-ok:#0b1f12;--on-bad:#0b1f12;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
@@ -132,6 +132,31 @@ h1 .sp{background:linear-gradient(180deg,#fffbd0,#fbbf24);-webkit-background-cli
 .lbr{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px}.lbr.me{background:color-mix(in srgb,var(--brand) 14%,transparent)}.gcard{min-height:150px}
 .duel{display:flex;align-items:center;gap:10px;margin:8px 0}.fighter{flex:1}.hp{height:14px;background:var(--line);border-radius:8px;overflow:hidden;margin:4px 0}.hp i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b 50%,#10b981);transition:width .6s}
 .vs{font-weight:800;color:var(--mute)}.dbtn{flex:1;font-size:1.1rem;padding:14px 12px}.dbtn small{font-weight:400}
+
+/* ===== v2 design: roomier, softer, bigger sidebar ===== */
+:root{--r:20px;--shadow:0 1px 2px color-mix(in srgb,var(--ink) 7%,transparent),0 12px 32px color-mix(in srgb,var(--ink) 9%,transparent)}
+body{font-size:16.5px;line-height:1.6}
+#shell main{padding:28px 34px 90px;max-width:1040px}
+h2{font-size:1.7rem;letter-spacing:-.015em;line-height:1.2}
+header{padding:12px 26px;box-shadow:0 6px 24px #0003}h1{font-size:1.45rem}h1 .logo{width:38px;height:38px}
+.card{border-radius:var(--r);padding:22px 24px;margin-bottom:18px;box-shadow:var(--shadow)}
+.card.set:hover,.chip:hover{box-shadow:0 2px 4px color-mix(in srgb,var(--ink) 8%,transparent),0 18px 40px color-mix(in srgb,var(--ink) 14%,transparent)}
+.hero{background:linear-gradient(135deg,color-mix(in srgb,var(--g1,#5b4bdb) 11%,var(--card)),color-mix(in srgb,var(--g3,#ec4899) 9%,var(--card)));border-color:color-mix(in srgb,var(--g1,#5b4bdb) 25%,var(--line))}
+button{border-radius:999px;padding:11px 22px;font-weight:600}button.alt{background:var(--card)}
+.opt,.mt,.dbtn,.sl{border-radius:16px}.opt{padding:14px 18px;font-size:1.03rem}.ib,.ib2,.sw{border-radius:12px}
+input[type=text],input[type=search],textarea,select{border-radius:14px;padding:12px 14px;background:var(--card)}input[type=checkbox]{width:20px;height:20px}
+.fc{min-height:280px;font-size:1.55rem;border-radius:26px}
+.set{padding:20px}.set .ico{font-size:2.3rem}
+.modal{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.panel{border-radius:26px;padding:28px;box-shadow:0 30px 80px #0007}
+#fab{width:64px;height:64px}
+.dash{margin:2px 0 22px}.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;animation:pop .4s ease both}
+.tile:hover{transform:translateY(-3px)}.tile b{display:block;font-size:2rem;line-height:1.1;letter-spacing:-.02em}.tile span{color:var(--mute);font-size:.92rem}
+#side{width:310px;padding:20px 16px;gap:4px;background:color-mix(in srgb,var(--card) 94%,var(--brand))}#snav{gap:4px}
+.sl{padding:12px 16px;font-size:1.05rem;gap:12px}
+.sl.on{background:color-mix(in srgb,var(--brand) 8%,var(--card));color:var(--brand);font-weight:700;box-shadow:inset 4px 0 0 var(--brand)}
+.sh{font-size:.78rem;margin:18px 8px 6px;letter-spacing:.1em}.timer{border-radius:16px;padding:8px 12px}.ficons .ib{padding:9px 10px}
+@media(max-width:800px){#side{width:min(340px,88vw)}#shell main{padding:18px 16px 90px}.card{padding:18px}h2{font-size:1.45rem}}
 </style>
 </head>
 <body>
@@ -386,7 +411,7 @@ onAuthStateChanged(auth,async u=>{
   user=u;cur=null;if(!u){ST=blankST();stTimer&&clearTimeout(stTimer);ME=null;socialOpen=false}renderSide();renderStreak();$("#fab").hidden=!u;if(!u)$("#chat").hidden=true;
   $("#auth").innerHTML=u?`<span class="mute">${esc(u.displayName)}</span> <button class="alt" id="out">Sign out</button>`:`<button id="in">Sign in with Google</button>`;
   if(!u&&SHARE_ID){openShared(SHARE_ID);return}
-  if(!u){app.innerHTML=`<div class="card hero"><div class="herologo"><svg class="logo" width="88" height="88" role="img" aria-label="StudySpark logo"><use href="#logo-icon"/></svg></div><h2>Turn your notes into study tools</h2><p>Upload text, PDF or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>. <a href="#" id="hwl">How StudySpark works</a></p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};$("#hwl").onclick=e=>{e.preventDefault();openHowTo()};return}
+  if(!u){app.innerHTML=`<div class="card hero"><div class="herologo"><svg class="logo" width="88" height="88" role="img" aria-label="StudySpark logo"><use href="#logo-icon"/></svg></div><h2>Turn your notes into study tools</h2><p>Upload text, PDF, Word or PowerPoint notes and get flashcards, quizzes, summaries, vocabulary, examples and diagrams, plus a study tutor that coaches you instead of doing your homework.</p><p>🃏 Flashcards &nbsp; 📝 Quizzes &nbsp; 🗺️ Interactive maps &nbsp; 🤖 AI tutor</p><p class="mute">Sign in to begin. Your data is private to your account. By signing in you accept the <a href="#" id="pvl">Privacy &amp; terms</a>. <a href="#" id="hwl">How StudySpark works</a></p></div>`;$("#pvl").onclick=e=>{e.preventDefault();openPrivacy()};$("#hwl").onclick=e=>{e.preventDefault();openHowTo()};return}
   await loadPrefs(u);await loadStats(u);await loadMe();loadUsage();await loadSets();SHARE_ID?openShared(SHARE_ID):home();maybeTour();
 });
 
@@ -494,14 +519,14 @@ function wireBackup(){
 }
 
 function home(){stopListen();stopGame();cur=null;socialOpen=false;renderSide();
-  app.innerHTML=`${planHtml()}${backupCard()}<details class="card hero" ${sets.length?"":"open"}><summary><b style="font-size:1.15rem">✨ New study set</b></summary>
+  app.innerHTML=`${dashHtml()}${planHtml()}${backupCard()}<details class="card hero" ${sets.length?"":"open"}><summary><b style="font-size:1.15rem">✨ New study set</b></summary>
   <input type="text" id="title" maxlength="60" placeholder="Title (up to 60 characters)">
-  <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .pptx or photos of notes · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
+  <p><input type="file" id="file" multiple accept=".txt,.md,.pdf,.docx,.pptx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*"> <span class="mute">.txt, .md, .pdf, .docx, .pptx or photos of notes · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
   <textarea id="txt" placeholder="…or paste your notes here"></textarea>
-  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></details>
+  <p><button id="go">Generate study materials</button> <span id="st" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p><p class="mute" style="margin:0">Or start from flashcards you already have: <button class="alt" id="himp" type="button">📥 Import flashcards (Quizlet, CSV)</button></p></details>
   <h2>Your library</h2><div id="libtools"></div><div class="grid" id="lib"></div>${tipCard()}`;
   $("#file").onchange=readFile;
-  $("#go").onclick=generate;renderQuota();wireTips();wireBackup();
+  $("#go").onclick=generate;renderQuota();$("#himp").onclick=()=>openImport(null);wireTips();wireBackup();
   app.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{const[id,t]=b.dataset.plan.split(":");cur=sets.find(x=>x.id===id);tab=t;study()});
   drawTools();drawLib();
 }
@@ -518,9 +543,31 @@ async function readPptx(buf){
   if(t.replace(/Slide \d+:/g,"").trim().length<50)throw new Error("No readable text found in these slides (text inside images isn't read).");
   return t;
 }
+async function readDocx(buf){
+  const z=await JSZip.loadAsync(buf),f=z.files["word/document.xml"];
+  if(!f)throw new Error("this doesn’t look like a Word (.docx) file.");
+  const xml=await f.async("string"),dec=t=>t.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");
+  const re=/<w:tbl>|<\/w:tbl>|<w:p[ >]|<\/w:p>|<\/w:tc>|<\/w:tr>|<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g;
+  let out="",line="",cell="",row=[],depth=0;
+  for(const m of xml.matchAll(re)){
+    const t=m[0];
+    if(m[1]!==undefined)line+=dec(m[1]);
+    else if(t.startsWith("<w:tab"))line+="\t";
+    else if(t.startsWith("<w:br")||t.startsWith("<w:cr"))line+=" ";
+    else if(t==="<w:tbl>")depth++;
+    else if(t==="</w:tbl>")depth=Math.max(0,depth-1);
+    else if(t==="</w:p>"){if(depth){cell+=(cell?" ":"")+line.trim();line=""}else{out+=line.trim()+"\n";line=""}}
+    else if(t==="</w:tc>"){row.push(cell.trim());cell=""}
+    else if(t==="</w:tr>"){out+=row.filter(Boolean).join(" | ")+"\n";row=[]}
+  }
+  out=out.replace(/\n{3,}/g,"\n\n").trim();
+  if(out.length<20)throw new Error("no readable text found in this Word file.");
+  return out;
+}
 async function extract(f){
   const isImg=IMG_RE.test(f.name);
-  if(!isImg&&!/\.(txt|md|pdf|pptx)$/i.test(f.name))throw new Error("only .txt, .md, .pdf, .pptx files and photos (.jpg, .png, .webp) are allowed.");
+  if(/\.doc$/i.test(f.name))throw new Error("old .doc files can’t be read. In Word choose Save As, then .docx.");
+  if(!isImg&&!/\.(txt|md|pdf|pptx|docx)$/i.test(f.name))throw new Error("only .txt, .md, .pdf, .docx, .pptx files and photos (.jpg, .png, .webp) are allowed.");
   if(f.size>10*1024*1024)throw new Error("file is over 10 MB.");
   if(isImg){
     if(ocrMode==="ai"&&user){
@@ -532,6 +579,11 @@ async function extract(f){
     if(t.replace(/\s/g,"").length<30)throw new Error("couldn’t read enough text. Try a sharper, well-lit, straight-on photo.");
     if(data.confidence<65)toast(`${f.name}: the text may contain mistakes (reading confidence ${Math.round(data.confidence)}%). Please check it before generating.`);
     return t;
+  }
+  if(/\.docx$/i.test(f.name)){
+    const buf=await f.arrayBuffer();
+    if(new TextDecoder().decode(buf.slice(0,2))!=="PK")throw new Error("not a valid .docx file.");
+    return readDocx(buf);
   }
   if(/\.pdf$/i.test(f.name)){
     const buf=await f.arrayBuffer();
@@ -874,9 +926,10 @@ function mergeInto(c,g,text){
 }
 function addTab(p){
   p.innerHTML=`<div class="card hero"><h3>➕ Add more notes to this set</h3><p class="mute">Upload more files or paste more text. New flashcards, quiz questions, concepts and vocabulary are added to this set. Nothing is removed.</p>
-  <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.pptx,image/*"> <span class="mute">files or photos · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
-  <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>`;
+  <p><input type="file" id="afile" multiple accept=".txt,.md,.pdf,.docx,.pptx,image/*"> <span class="mute">files or photos · up to 10 files, 10 MB each</span> <span class="mute">Photo reading:</span> ${omodeSel()} <span class="mute">Language:</span> ${olangSel()}</p>
+  <textarea id="atxt" placeholder="…or paste more notes here"></textarea><p class="mute" style="margin:4px 0">Have flashcards from Quizlet or Anki? <button class="alt" id="aimp" type="button">📥 Import flashcards</button></p><p><button id="ago">Add to set</button> <span id="ast" class="mute"></span> <span class="qleft mute" data-p="/generate"></span></p></div>`;
   renderQuota();
+  $("#aimp").onclick=()=>openImport(cur);
   $("#afile").onchange=async()=>{const fs=$("#afile").files;if(!fs.length)return;const t=await readFiles(fs,$("#ast"));
     $("#atxt").value=($("#atxt").value.trim()?$("#atxt").value+"\n\n":"")+t;$("#ast").textContent=`Loaded ${$("#atxt").value.length.toLocaleString()} characters.`;$("#afile").value=""};
   $("#ago").onclick=async()=>{
@@ -986,9 +1039,9 @@ function renderSide(){
   const showM=M.length>0&&(sideMore||M.some(t=>t[0]===tab));
   const tb=([t,i,l])=>`<button class="sl ${tab===t?"on":""}" data-tab="${t}" ${st()} ${tab===t?'aria-current="page"':""}>${i} ${l}</button>`;
   const L=libraryList(),shown=sideAll?L:L.slice(0,5);
-  const sb=x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(short(x.title,22))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`};
+  const sb=x=>{const d=daysLeft(x);return `<button class="sl ${cur&&cur.id===x.id?"on":""}" data-set="${esc(x.id)}" ${st()}>${icon(x.title)} ${esc(short(x.title,28))}${d!=null&&d>=0?`<small>${d}d</small>`:""}</button>`};
   n.innerHTML=(user?`<button class="sl ${cur||socialOpen?"":"on"}" data-go="home" ${st()}>🏠 Library</button>`+(SOCIAL_ENABLED?`<button class="sl ${socialOpen?"on":""}" data-go="social" ${st()}>🎮 Games &amp; friends</button>`:""):"")
-   +(cur?`<div class="sh">${esc(short(cur.title,26))}</div>`+P.map(tb).join("")+(M.length?`<button class="sl" data-act="more" ${st()} aria-expanded="${showM}">${showM?"▾":"▸"} More</button>`+(showM?M.map(tb).join(""):""):""):"")
+   +(cur?`<div class="sh">${esc(short(cur.title,32))}</div>`+P.map(tb).join("")+(M.length?`<button class="sl" data-act="more" ${st()} aria-expanded="${showM}">${showM?"▾":"▸"} More</button>`+(showM?M.map(tb).join(""):""):""):"")
    +(user?'<div class="sh">Your sets</div>'+(shown.map(sb).join("")||'<p class="mute" style="padding:6px">No sets yet.</p>')+(L.length>5?`<button class="sl" data-act="all" ${st()}>${sideAll?"Show fewer":"Show all ("+L.length+")"}</button>`:""):"");
 }
 $("#more").onclick=()=>{const m=$("#moremenu");m.hidden=!m.hidden;$("#more").setAttribute("aria-expanded",String(!m.hidden))};
@@ -1009,12 +1062,20 @@ $("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
   closeSide()};
 {const sh=()=>document.documentElement.style.setProperty("--hh",$("header").offsetHeight+"px");sh();addEventListener("resize",sh)}
 
+function dashHtml(){
+  if(!user)return"";
+  const first=esc((user.displayName||"there").split(" ")[0]),due=sets.reduce((a,x)=>a+dueCount(x),0),mastered=sets.reduce((a,x)=>a+(x.cards||[]).filter(c=>c.box>=3).length,0),si=streakInfo();
+  const msg=!sets.length?"Let’s make your first study set.":due?`You have <b>${due}</b> flashcard${due===1?"":"s"} to review today.`:"You’re all caught up. Nice work!";
+  const tile=(n,l,c)=>`<div class="tile" style="--c:${c}"><b>${n}</b><span>${l}</span></div>`;
+  return `<div class="dash"><h2 style="margin:0 0 4px">Hi ${first} 👋</h2><p class="mute" style="margin:0 0 16px">${msg}</p><div class="tiles">${tile(due,"cards due today","var(--g1)")}${tile("🔥 "+si.cur,"day streak","var(--g3)")}${tile(sets.length,"study sets","var(--g2)")}${tile(mastered,"cards mastered","var(--green)")}</div></div>`;
+}
 function planHtml(){
   if(!sets.length)return"";
-  const L=libraryList(),total=L.reduce((a,x)=>a+dueCount(x),0),nsets=L.filter(x=>dueCount(x)>0).length;
+  const L=libraryList();
   const items=L.filter(x=>dueCount(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,3);
   const weak=sets.filter(x=>x.meta?.scores?.length).map(x=>({x,p:x.meta.scores[x.meta.scores.length-1].pct})).filter(o=>o.p<80).sort((a,b)=>a.p-b.p)[0];
-  return `<div class="card sec" style="--c:#10b981"><h3>📅 Today</h3>${streakLine()}<p>${total?`You have <b>${total}</b> flashcard${total>1?"s":""} due across ${nsets} set${nsets>1?"s":""}.`:"🎉 No flashcards are due today."}</p>`
+  if(!items.length&&!weak)return "";
+  return `<div class="card sec" style="--c:#10b981"><h3 style="margin-top:0">📅 Up next</h3>`
    +items.map(x=>{const d=daysLeft(x),n=dueCount(x);return `<div class="row"><span>${icon(x.title)} <b title="${esc(x.title)}">${esc(short(x.title,34))}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
    +(weak?`<p class="mute">💡 Your lowest recent quiz is <b>${esc(weak.x.title)}</b> (${weak.p}%). Retaking it, or practising only what you missed, would help.</p>`:"")+"</div>";
 }
@@ -1474,7 +1535,7 @@ function openExplain(item){
 /* ---------- Welcome tour, how-to guide and feedback ---------- */
 const APP_VERSION="2026-10-28";
 const TOUR=[
- {i:'<svg class="logo" width="76" height="76" aria-hidden="true"><use href="#logo-icon"/></svg>',t:"Turn your notes into study tools",d:"Tap <b>✨ New study set</b> and add notes: type or paste them, or upload a file, a PowerPoint or a photo of a page. In under a minute you get flashcards, a quiz, study notes, vocabulary and a concept map."},
+ {i:'<svg class="logo" width="76" height="76" aria-hidden="true"><use href="#logo-icon"/></svg>',t:"Turn your notes into study tools",d:"Tap <b>✨ New study set</b> and add notes: type or paste them, or upload a file (PDF, Word, PowerPoint) or a photo of a page. In under a minute you get flashcards, a quiz, study notes, vocabulary and a concept map."},
  {i:"🃏",t:"Study the smart way",d:"Flashcards come back right when you’re about to forget them. Quizzes explain why each answer is right or wrong, and show where to look in your notes. Set a <b>learn-by date</b> under Progress to get a plan."},
  {i:"🤖",t:"Ask for help, not answers",d:"The 🤖 button (bottom right) is your study tutor. It gives hints and explanations, not homework answers. Highlight any text and tap <b>Ask AI</b>, or press 💡 on a concept to get it explained a different way."},
  {i:"📲",t:"Make it yours",d:"In <b>⚙️ Settings</b> you can change colours, fonts, text size and sound. Use <b>⋯ → Get the app</b> to add StudySpark to your home screen, and back up your sets from Settings now and then."}];
@@ -1503,7 +1564,7 @@ function maybeTour(){
   openTour();
 }
 const HOWTO=[
- ["📚 Make a study set",["Tap <b>✨ New study set</b>, add a title, then upload files (text, PDF, PowerPoint or photos, up to 10 MB each) or paste your notes.","Press <b>Generate</b>. After 10–30 seconds you get study notes, flashcards, a quiz, vocabulary, examples and a concept map.","Add more later with <b>More → ➕ Add notes</b>. Nothing is deleted."]],
+ ["📚 Make a study set",["Tap <b>✨ New study set</b>, add a title, then upload files (text, PDF, Word, PowerPoint or photos, up to 10 MB each) or paste your notes.","Press <b>Generate</b>. After 10–30 seconds you get study notes, flashcards, a quiz, vocabulary, examples and a concept map.","Add more later with <b>More → ➕ Add notes</b>. Nothing is deleted.","Already have flashcards? Use <b>📥 Import flashcards</b> (Quizlet, Anki or a spreadsheet) on the new-set form or under Add notes."]],
  ["🃏 Study",["<b>Flashcards:</b> flip a card, then press <b>Got it</b> or <b>Still learning</b>. Cards you know come back less often.","<b>Quiz:</b> multiple choice, select-all and written questions, with a reason for every answer. Your results stay until you press Retake, and you can practise only what you missed.","<b>Listen:</b> 🔊 reads notes and cards aloud. 🎤 lets you dictate written answers."]],
  ["🤖 Get help",["The 🤖 tutor gives hints and explanations, not homework answers.","Highlight text and tap <b>Ask AI</b>, or press 💡 on a concept or flashcard to see it explained another way and turn it into flashcards or quiz questions."]],
  ["📅 Stay on track",["Pick a <b>learn-by date</b> under <b>More → 📊 Progress</b> to get a daily plan.","Your 🔥 streak and 🏅 badges are in the sidebar. The ⏱ timer helps you focus in short rounds.","<b>⋯ → Study guide (PDF)</b> makes a printable summary."]],
@@ -1928,6 +1989,76 @@ async function openDuelSetup(){
     }catch(x){$("#dgo").disabled=false;toast("Couldn’t start the duel: "+(x.code||x.message))}
   };
   document.body.appendChild(m);
+}
+
+/* ---------- Import flashcards (CSV, Quizlet, Anki, pasted lists) ---------- */
+function csvRows(text,delim){
+  const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"'&&f==="")q=true;
+    else if(c===delim){row.push(f);f=""}
+    else if(c==="\n"){row.push(f);rows.push(row);row=[];f=""}
+    else f+=c}
+  row.push(f);rows.push(row);return rows;
+}
+function parseCardsText(raw,sep){
+  const text=String(raw).replace(/\r\n?/g,"\n").replace(/^\uFEFF/,"").trim();if(!text)return[];
+  const head=text.split("\n").slice(0,12).join("\n");
+  if(!sep||sep==="auto"){
+    const tabs=(head.match(/\t/g)||[]).length,semi=(head.match(/;/g)||[]).length,com=(head.match(/,/g)||[]).length;
+    sep=tabs?"tab":semi&&semi>=com?"semicolon":com?"comma":/ [-–—] /.test(head)?"dash":"tab";
+  }
+  let rows;
+  if(sep==="dash")rows=text.split("\n").map(l=>{const m=l.match(/^(.*?)\s[-–—]\s(.+)$/);return m?[m[1],m[2]]:[l]});
+  else rows=csvRows(text,{tab:"\t",comma:",",semicolon:";"}[sep]||"\t");
+  const out=[],seen=new Set();
+  rows.forEach((r,i)=>{
+    const f=String(r[0]||"").trim(),b=String(r[1]||"").trim();if(!f||!b)return;
+    if(i===0&&/^(term|front|question|word|vocab(ulary)?|prompt)$/i.test(f)&&/^(definition|back|answer|meaning|translation)$/i.test(b))return;
+    const k=f.toLowerCase()+"\u0000"+b.toLowerCase();if(seen.has(k))return;seen.add(k);
+    out.push({front:f.slice(0,300),back:b.slice(0,500),box:0});
+  });
+  return out.slice(0,500);
+}
+function openImport(target){
+  const old=$("#sm");if(old)old.remove();
+  const m=document.createElement("div");m.id="sm";m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-label","Import flashcards");
+  m.innerHTML=`<div class="panel"><div class="row"><h2 style="margin:0">📥 Import flashcards</h2><button class="alt" id="sx" aria-label="Close">✕</button></div>
+  <p class="mute">Bring cards from Quizlet, Anki or a spreadsheet. Put one card per line: the term, then the definition, separated by a tab, comma, semicolon or dash. In Quizlet use <b>Export</b> and paste it here.</p>
+  ${target?"":'<p><input type="text" id="imt" maxlength="60" placeholder="Name for the new set" aria-label="Name for the new set"></p>'}
+  <p><input type="file" id="imf" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Choose a CSV or text file"></p>
+  <p><textarea id="imx" placeholder="Term&#9;Definition&#10;Mitochondria&#9;Makes ATP" aria-label="Paste your flashcards"></textarea></p>
+  <div class="row"><span>Separator</span><select id="ims" aria-label="Separator"><option value="auto">Detect automatically</option><option value="tab">Tab</option><option value="comma">Comma</option><option value="semicolon">Semicolon</option><option value="dash">Dash ( - )</option></select></div>
+  <div id="imp" class="mute" aria-live="polite">Paste or choose something to see a preview.</div>
+  <p><button id="imgo" disabled>Import</button></p></div>`;
+  document.body.appendChild(m);
+  let cards=[];
+  const upd=()=>{
+    cards=parseCardsText($("#imx").value,$("#ims").value);const have=target?new Set((target.cards||[]).map(c=>c.front.toLowerCase()+"\u0000"+c.back.toLowerCase())):new Set();
+    const fresh=cards.filter(c=>!have.has(c.front.toLowerCase()+"\u0000"+c.back.toLowerCase()));cards=fresh;
+    $("#imp").innerHTML=cards.length?`<b>${cards.length} card${cards.length===1?"":"s"}</b> ready${have.size?" (duplicates skipped)":""}:<ul>${cards.slice(0,3).map(c=>`<li><b>${esc(clip(c.front,50))}</b> → ${esc(clip(c.back,70))}</li>`).join("")}</ul>${cards.length>3?"…and more":""}`:($("#imx").value.trim()?"No cards found. Check the separator, and that each line has a term and a definition.":"Paste or choose something to see a preview.");
+    $("#imgo").disabled=!cards.length;$("#imgo").textContent=cards.length?`Import ${cards.length} card${cards.length===1?"":"s"}`:"Import";
+  };
+  $("#imx").oninput=upd;$("#ims").onchange=upd;
+  $("#imf").onchange=async()=>{const f=$("#imf").files[0];if(!f)return;if(f.size>2*1024*1024)return toast("That file is over 2 MB.");$("#imx").value=await f.text();if(!target&&!$("#imt").value)$("#imt").value=f.name.replace(/\.\w+$/,"").slice(0,60);upd()};
+  m.onclick=async e=>{
+    if(e.target===m||e.target.id==="sx")return m.remove();
+    if(e.target.id!=="imgo")return;
+    if(!cards.length)return;$("#imgo").disabled=true;
+    try{
+      if(target){
+        if((target.cards||[]).length+cards.length>800)throw new Error("A set can hold up to 800 flashcards.");
+        target.cards=[...(target.cards||[]),...cards];await setDoc(doc(setsCol(),target.id),{cards:target.cards},{merge:true});
+        markActive("edit");m.remove();toast(`Imported ${cards.length} flashcards.`);tab="cards";study();
+      }else{
+        const title=($("#imt").value.trim()||"Imported flashcards").slice(0,60);
+        const data={title,created:Date.now(),text:"",notes:{summary:"",concepts:[],vocab:[],examples:[],diagram:null},cards,quiz:[],lastScore:null,meta:{scores:[]},visuals:null,dialogues:null};
+        const ref=await addDoc(setsCol(),data);sets.unshift({id:ref.id,...data});cur=sets[0];tab="cards";m.remove();markActive("set");toast(`Created “${title}” with ${cards.length} flashcards.`);study();
+      }
+    }catch(x){$("#imgo").disabled=false;toast("Couldn’t import: "+(x.code||x.message))}
+  };
+  $("#imx").focus();
 }
 
 const chats={};let picked="",thinking=false;
