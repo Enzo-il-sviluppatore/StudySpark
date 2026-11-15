@@ -26,7 +26,16 @@ for id, b0, b1, *g in pals:
         chk(f"{id}/{mode} brand text on card", cr(b, card))
         chk(f"{id}/{mode} focus ring vs page", cr(b, bg), 3)
     for x in g: chk(f"{id} white on gradient {x}", cr("#ffffff", dim(x)))
-for name, fg, bg in [("mute/light page", "#68708a", LB), ("mute/light card", "#68708a", LC), ("mute/dark card", "#9aa2bf", DC),
+def mix(a, b, t):  # t of colour b over colour a
+    A, B = rgb(a), rgb(b); return "#%02x%02x%02x" % tuple(int(round(255 * (x * (1 - t) + y * t))) for x, y in zip(A, B))
+for id, b0, b1, *g in pals:
+    for mode, b, card in (("light", b0, LC), ("dark", b1, DC)):
+        chk(f"{id}/{mode} active sidebar item (brand text on 8% tint)", cr(b, mix(card, b, .08)))
+        chk(f"{id}/{mode} muted text on the tinted sidebar", cr("#5a6280" if mode == "light" else "#9aa2bf", mix(card, b, .06)))
+        for x in g:
+            chk(f"{id}/{mode} muted text on the tinted hero cards ({x})", cr("#5a6280" if mode == "light" else "#9aa2bf", mix(card, x, .11)))
+            chk(f"{id}/{mode} body text on the tinted hero cards ({x})", cr("#1c2033" if mode == "light" else "#eceefa", mix(card, x, .11)))
+for name, fg, bg in [("mute/light page", "#5a6280", LB), ("mute/light card", "#5a6280", LC), ("mute/dark card", "#9aa2bf", DC),
     ("ok text light", "#0f7a43", LC), ("bad text light", "#b91c1c", LC), ("ok text dark", "#4ade80", DC), ("bad text dark", "#f87171", DC),
     ("white on ok", "#ffffff", "#0f7a43"), ("white on bad", "#ffffff", "#b91c1c"), ("dark on ok(dark)", "#0b1f12", "#4ade80"), ("dark on bad(dark)", "#0b1f12", "#f87171"),
     ("amber text light", "#92400e", LC), ("amber text dark", "#fbbf24", DC), ("green text light", "#047857", LC), ("red text light", "#b91c1c", LC)]:
