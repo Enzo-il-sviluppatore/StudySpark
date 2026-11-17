@@ -459,7 +459,7 @@ function drawLib(){
   const el=$("#lib");if(!el)return;
   const L=libMatches();
   el.innerHTML=L.map((x,i)=>`<div class="card set" style="--c:${hue(x.title)};animation-delay:${Math.min(i,8)*60}ms"><div class="ico">${icon(x.title)}</div><b title="${esc(x.title)}">${esc(x.title)}</b>
-  <div class="mute">${subjOf(x)?`📁 ${esc(subjOf(x))}<br>`:""}${x.cards?.length||0} cards · ${x.quiz?.length||0} questions<br>Due today: ${dueCount(x)} · mastered ${(x.cards||[]).filter(c=>c.box>=3).length}${learnLine(x)}${x.meta?.scores?.length?`<br>Last quiz: ${x.meta.scores[x.meta.scores.length-1].pct}%`:x.lastScore!=null?`<br>Last quiz: ${Math.round(100*x.lastScore/x.quiz.length)}%`:""}</div>${snippet(x)}
+  <div class="mute">${subjOf(x)?`📁 ${esc(subjOf(x))}<br>`:""}${x.cards?.length||0} cards · ${x.quiz?.length||0} questions<br>${live(x)?"Due today: "+dueCount(x)+" · mastered":"Mastered"} ${(x.cards||[]).filter(c=>c.box>=3).length}${learnLine(x)}${x.meta?.scores?.length?`<br>Last quiz: ${x.meta.scores[x.meta.scores.length-1].pct}%`:x.lastScore!=null?`<br>Last quiz: ${Math.round(100*x.lastScore/x.quiz.length)}%`:""}</div>${snippet(x)}
   <div class="bar"><i style="width:${pct(x)}%"></i></div><p><button data-open="${x.id}">Study</button> <button class="alt" data-del="${x.id}">Delete</button></p></div>`).join("")||`<p class="mute">${sets.length?"No sets match your search or filter.":"Nothing yet. Add notes above."}</p>`;
   el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{cur=sets.find(x=>x.id===b.dataset.open);tab="notes";study()});
   el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this set?"))return;
@@ -722,9 +722,10 @@ const cardsFromNotes=n=>[...(n?.vocab||[]).filter(v=>v&&v.word&&v.definition).ma
 const DAY=864e5,IV=[0,1,3,7,14],isDue=c=>!c.due||c.due<=Date.now(),dueCount=st=>(st.cards||[]).filter(isDue).length;
 const learnEnd=st=>st.meta?.learnBy?new Date(st.meta.learnBy+"T23:59:59"):null;
 const daysLeft=st=>{const e=learnEnd(st);return e?Math.ceil((e-Date.now())/DAY):null};
-const learnLine=st=>{const d=daysLeft(st);if(d==null)return"";const col=d<0?"var(--mute)":d<=3?"var(--red)":d<=7?"var(--amber)":"var(--green)";
+const live=st=>{const d=daysLeft(st);return d==null||d>=0},dueLive=st=>live(st)?dueCount(st):0; // a set whose learn-by date has passed no longer counts as "to do"
+const learnLine=st=>{const d=daysLeft(st);if(d==null||d<0)return"";const col=d<0?"var(--mute)":d<=3?"var(--red)":d<=7?"var(--amber)":"var(--green)";
   return `<br><b style="color:${col}">📅 ${d<0?"Learn-by date passed":d===0?"Learn by today!":d+" day"+(d>1?"s":"")+" left"}</b>`};
-const libraryList=()=>[...sets].sort((a,b)=>{const k=x=>{const d=daysLeft(x);return d==null?1e9:d<0?1e8:d};return k(a)-k(b)});
+const libraryList=()=>[...sets].sort((a,b)=>{const k=x=>{const d=daysLeft(x);return d==null||d<0?1e9:d};return k(a)-k(b)});
 const interval=box=>{let d=IV[box];const e=learnEnd(cur);if(e){const left=(e-Date.now())/DAY;if(left>0)d=Math.min(d,Math.max(.25,left/3))}return d*DAY};
 function cards(p){
   let all=cur.cards||[];
@@ -1064,7 +1065,7 @@ $("#snav").onclick=e=>{const b=e.target.closest("button");if(!b)return;
 
 function dashHtml(){
   if(!user)return"";
-  const first=esc((user.displayName||"there").split(" ")[0]),due=sets.reduce((a,x)=>a+dueCount(x),0),mastered=sets.reduce((a,x)=>a+(x.cards||[]).filter(c=>c.box>=3).length,0),si=streakInfo();
+  const first=esc((user.displayName||"there").split(" ")[0]),due=sets.reduce((a,x)=>a+dueLive(x),0),mastered=sets.reduce((a,x)=>a+(x.cards||[]).filter(c=>c.box>=3).length,0),si=streakInfo();
   const msg=!sets.length?"Let’s make your first study set.":due?`You have <b>${due}</b> flashcard${due===1?"":"s"} to review today.`:"You’re all caught up. Nice work!";
   const tile=(n,l,c)=>`<div class="tile" style="--c:${c}"><b>${n}</b><span>${l}</span></div>`;
   return `<div class="dash"><h2 style="margin:0 0 4px">Hi ${first} 👋</h2><p class="mute" style="margin:0 0 16px">${msg}</p><div class="tiles">${tile(due,"cards due today","var(--g1)")}${tile("🔥 "+si.cur,"day streak","var(--g3)")}${tile(sets.length,"study sets","var(--g2)")}${tile(mastered,"cards mastered","var(--green)")}</div></div>`;
@@ -1072,11 +1073,11 @@ function dashHtml(){
 function planHtml(){
   if(!sets.length)return"";
   const L=libraryList();
-  const items=L.filter(x=>dueCount(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,3);
-  const weak=sets.filter(x=>x.meta?.scores?.length).map(x=>({x,p:x.meta.scores[x.meta.scores.length-1].pct})).filter(o=>o.p<80).sort((a,b)=>a.p-b.p)[0];
+  const items=L.filter(x=>dueLive(x)>0||(daysLeft(x)!=null&&daysLeft(x)>=0)).slice(0,3);
+  const weak=sets.filter(x=>live(x)&&x.meta?.scores?.length).map(x=>({x,p:x.meta.scores[x.meta.scores.length-1].pct})).filter(o=>o.p<80).sort((a,b)=>a.p-b.p)[0];
   if(!items.length&&!weak)return "";
   return `<div class="card sec" style="--c:#10b981"><h3 style="margin-top:0">📅 Up next</h3>`
-   +items.map(x=>{const d=daysLeft(x),n=dueCount(x);return `<div class="row"><span>${icon(x.title)} <b title="${esc(x.title)}">${esc(short(x.title,34))}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
+   +items.map(x=>{const d=daysLeft(x),n=dueLive(x);return `<div class="row"><span>${icon(x.title)} <b title="${esc(x.title)}">${esc(short(x.title,34))}</b><span class="mute"> · ${n} due${d!=null&&d>=0?" · "+d+" day"+(d===1?"":"s")+" left":""}</span></span><button data-plan="${esc(x.id)}:${n?"cards":"quiz"}">${n?"Review cards":"Take quiz"}</button></div>`}).join("")
    +(weak?`<p class="mute">💡 Your lowest recent quiz is <b>${esc(weak.x.title)}</b> (${weak.p}%). Retaking it, or practising only what you missed, would help.</p>`:"")+"</div>";
 }
 function editTab(p){
