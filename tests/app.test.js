@@ -93,6 +93,27 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   q(""); a.click("[data-sub=Science]"); check("filtering by subject works", a.$$("#lib .set").length === 1);
   a.click("[data-sub=__none]"); check("'No subject' filter works", a.$$("#lib .set").length === 2);
 
+  section("Sets past their learn-by date");
+  const day = n => new Date(Date.now() + n * 864e5 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+  const old = mk("Old exam", 1000, { meta: { learnBy: day(-3), scores: [{ at: 1, pct: 20 }] }, cards: [{ front: "a", back: "b", box: 0 }, { front: "c", back: "d", box: 0 }] });
+  const soon = mk("Next week test", 2000, { meta: { learnBy: day(3), scores: [] }, cards: [{ front: "e", back: "f", box: 0 }] });
+  const plain = mk("No date set", 3000, { cards: [{ front: "g", back: "h", box: 0 }] });
+  a = await boot({ sets: [old, soon, plain] }); await a.signIn();
+  const upNext = a.$$(".card.sec").map(c => c.textContent).find(x => /Up next/.test(x)) || "";
+  check("a set past its date is left out of 'Up next'", /Next week test/.test(upNext) && !/Old exam/.test(upNext), upNext.slice(0, 120));
+  check("the home 'cards due' tile ignores a set past its date (1 + 1 = 2, not 4)", a.$$(".tile")[0].querySelector("b").textContent === "2", a.$$(".tile")[0].textContent);
+  const oldCard = a.$$("#lib .set").find(c => /Old exam/.test(c.textContent));
+  check("its library card no longer shows 'Due today' or a countdown", !!oldCard && !/Due today/.test(oldCard.textContent) && !/passed|day.*left/i.test(oldCard.textContent) && /Mastered/.test(oldCard.textContent), oldCard && oldCard.textContent);
+  const soonCard = a.$$("#lib .set").find(c => /Next week/.test(c.textContent));
+  check("a set with a future date still shows its countdown and due cards", /Due today: 1/.test(soonCard.textContent) && /4 days left/.test(soonCard.textContent), soonCard.textContent);
+  check("a set with no date is unchanged", /Due today: 1/.test(a.$$("#lib .set").find(c => /No date/.test(c.textContent)).textContent));
+  check("sets past their date sort like undated sets, after the one with a deadline", a.$$("#lib .set b").map(b => b.textContent)[0] === "Next week test", a.$$("#lib .set b").map(b => b.textContent));
+  check("the 'lowest quiz' hint skips a set past its date (its 20% score is ignored)", !/lowest recent quiz/.test(a.$("#app").textContent));
+  a.$$("#lib [data-open]").find(b => /Old exam/.test(b.closest(".set").textContent)).click(); await a.tick();
+  check("opening it shows no countdown or 'passed' warning under the title", !/passed|days? left/i.test(a.$("#app .ttlrow").parentElement.textContent.split("Study notes")[0]));
+  await tab(a, "progress"); check("the Progress tab still lets you pick a new date", /date has passed/i.test(a.$("#pane").textContent) && !!a.$("#lb"));
+  await tab(a, "cards"); check("its flashcards can still be studied if you open them", /left|All caught up/.test(a.$("#pane").textContent));
+
   section("Sharing");
   a = await boot({ sets: lib(1) }); await a.signIn(); await openFirst(a);
   a.click("#opt"); a.click("#so-sh"); a.click("#mk"); await a.tick(60);
