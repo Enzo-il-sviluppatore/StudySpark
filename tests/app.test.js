@@ -112,7 +112,9 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   a.$$("#lib [data-open]").find(b => /Old exam/.test(b.closest(".set").textContent)).click(); await a.tick();
   check("opening it shows no countdown or 'passed' warning under the title", !/passed|days? left/i.test(a.$("#app .ttlrow").parentElement.textContent.split("Study notes")[0]));
   await tab(a, "progress"); check("the Progress tab still lets you pick a new date", /date has passed/i.test(a.$("#pane").textContent) && !!a.$("#lb"));
-  await tab(a, "cards"); check("its flashcards can still be studied if you open them", /left|All caught up/.test(a.$("#pane").textContent));
+  check("the Progress tab shows 0 cards due for a set past its date", /Cards due today:\s*0/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 300));
+  await tab(a, "cards"); check("a set past its date starts with no cards due, and says so", /No cards are due right now/.test(a.$("#pane").textContent) && !/Next review/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 200));
+  a.click("#all"); await a.tick(100); check("its flashcards can still be studied with 'Study all cards anyway'", /2 left/.test(a.$("#pane").textContent) && /0 due/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 200));
 
   section("Sharing");
   a = await boot({ sets: lib(1) }); await a.signIn(); await openFirst(a);
