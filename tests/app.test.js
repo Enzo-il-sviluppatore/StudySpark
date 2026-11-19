@@ -5,6 +5,8 @@ const mk = (t, c, x = {}) => ({ title: t, created: c, text: "Mitochondria releas
   cards: [{ front: "f1", back: "b1", box: 0 }, { front: "f2", back: "b2", box: 0 }],
   quiz: [{ type: "mc", q: "Which releases energy?", options: ["Nucleus", "Mitochondria", "Ribosome", "Golgi"], answer: 1, why: ["", "", "", ""], explain: "ATP" }, { type: "multi", q: "Pick two", options: ["a", "b", "c", "d", "e"], answers: [0, 2], explain: "x" }, { type: "written", q: "Explain ATP", sample: "Energy carrier" }],
   lastScore: null, meta: { scores: [] }, visuals: { steps: { title: "S", cycle: true, items: [{ label: "A", detail: "a" }, { label: "B", detail: "b" }] }, images: [], resolved: true }, dialogues: null, ...x });
+const dayIn = n => new Date(Date.now() + n * 864e5 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const dated = sets => sets.map(x => ({ ...x, meta: { ...(x.meta || {}), learnBy: dayIn(10) } })); // cards only count as due when a learn-by date is set
 const lib = (n) => [...Array(n)].map((_, i) => mk("Set " + (i + 1), 1000 * (i + 1)));
 const tab = async (a, t) => { if (!a.$$("#snav [data-tab=" + t + "]")[0]) a.click("#snav [data-act=more]"); a.$$("#snav [data-tab=" + t + "]")[0].click(); await a.tick(60); };
 const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick(); };
@@ -53,7 +55,7 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   check("a failed generation shows the message and keeps your text", /busy/.test(a.$("#toast").textContent) && a.$("#txt").value.length > 100 && a.$("#go").disabled === false);
 
   section("Flashcards, quiz and results");
-  a = await boot({ sets: lib(2) }); await a.signIn(); await openFirst(a);
+  a = await boot({ sets: dated(lib(2)) }); await a.signIn(); await openFirst(a);
   await tab(a, "cards"); a.click("#fc"); check("a flashcard flips", /b[12]/.test(a.$("#fc").textContent));
   a.click("#yes"); await a.tick(300); check("'Got it' moves to the next card", /1 left/.test(a.$("#pane").textContent));
   const sid = [...a.store.keys()].find(k => /sets\/s\d$/.test(k));
@@ -101,12 +103,12 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   a = await boot({ sets: [old, soon, plain] }); await a.signIn();
   const upNext = a.$$(".card.sec").map(c => c.textContent).find(x => /Up next/.test(x)) || "";
   check("a set past its date is left out of 'Up next'", /Next week test/.test(upNext) && !/Old exam/.test(upNext), upNext.slice(0, 120));
-  check("the home 'cards due' tile ignores a set past its date (1 + 1 = 2, not 4)", a.$$(".tile")[0].querySelector("b").textContent === "2", a.$$(".tile")[0].textContent);
+  check("the home 'cards due' tile counts only the set with a future date (1, not 4)", a.$$(".tile")[0].querySelector("b").textContent === "1", a.$$(".tile")[0].textContent);
   const oldCard = a.$$("#lib .set").find(c => /Old exam/.test(c.textContent));
   check("its library card no longer shows 'Due today' or a countdown", !!oldCard && !/Due today/.test(oldCard.textContent) && !/passed|day.*left/i.test(oldCard.textContent) && /Mastered/.test(oldCard.textContent), oldCard && oldCard.textContent);
   const soonCard = a.$$("#lib .set").find(c => /Next week/.test(c.textContent));
   check("a set with a future date still shows its countdown and due cards", /Due today: 1/.test(soonCard.textContent) && /4 days left/.test(soonCard.textContent), soonCard.textContent);
-  check("a set with no date is unchanged", /Due today: 1/.test(a.$$("#lib .set").find(c => /No date/.test(c.textContent)).textContent));
+  check("a set with no learn-by date shows no cards as due", !/Due today/.test(a.$$("#lib .set").find(c => /No date/.test(c.textContent)).textContent) && /Mastered/.test(a.$$("#lib .set").find(c => /No date/.test(c.textContent)).textContent));
   check("sets past their date sort like undated sets, after the one with a deadline", a.$$("#lib .set b").map(b => b.textContent)[0] === "Next week test", a.$$("#lib .set b").map(b => b.textContent));
   check("the 'lowest quiz' hint skips a set past its date (its 20% score is ignored)", !/lowest recent quiz/.test(a.$("#app").textContent));
   a.$$("#lib [data-open]").find(b => /Old exam/.test(b.closest(".set").textContent)).click(); await a.tick();
@@ -115,6 +117,11 @@ const openFirst = async a => { a.$$("#lib [data-open]")[0].click(); await a.tick
   check("the Progress tab shows 0 cards due for a set past its date", /Cards due today:\s*0/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 300));
   await tab(a, "cards"); check("a set past its date starts with no cards due, and says so", /No cards are due right now/.test(a.$("#pane").textContent) && !/Next review/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 200));
   a.click("#all"); await a.tick(100); check("its flashcards can still be studied with 'Study all cards anyway'", /2 left/.test(a.$("#pane").textContent) && /0 due/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 200));
+
+  a.click("#snav [data-go=home]"); await a.tick(100);
+  a.$$("#lib [data-open]").find(b => /No date/.test(b.closest(".set").textContent)).click(); await a.tick();
+  await tab(a, "cards"); check("an undated set opens its flashcards with nothing due", /No cards are due right now/.test(a.$("#pane").textContent), a.$("#pane").textContent.slice(0, 200));
+  await tab(a, "progress"); check("and its Progress tab shows 0 cards due", /Cards due today:\s*0/.test(a.$("#pane").textContent));
 
   section("Sharing");
   a = await boot({ sets: lib(1) }); await a.signIn(); await openFirst(a);
