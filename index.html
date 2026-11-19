@@ -722,7 +722,7 @@ const cardsFromNotes=n=>[...(n?.vocab||[]).filter(v=>v&&v.word&&v.definition).ma
 const DAY=864e5,IV=[0,1,3,7,14],isDue=c=>!c.due||c.due<=Date.now(),dueCount=st=>(st.cards||[]).filter(isDue).length;
 const learnEnd=st=>st.meta?.learnBy?new Date(st.meta.learnBy+"T23:59:59"):null;
 const daysLeft=st=>{const e=learnEnd(st);return e?Math.ceil((e-Date.now())/DAY):null};
-const live=st=>{const d=daysLeft(st);return d==null||d>=0},dueLive=st=>live(st)?dueCount(st):0; // a set whose learn-by date has passed no longer counts as "to do"
+const live=st=>{const d=daysLeft(st);return d==null||d>=0},dueLive=st=>live(st)?dueCount(st):0,dueNow=c=>live(cur)&&isDue(c); // a set whose learn-by date has passed no longer counts as "to do"
 const learnLine=st=>{const d=daysLeft(st);if(d==null||d<0)return"";const col=d<0?"var(--mute)":d<=3?"var(--red)":d<=7?"var(--amber)":"var(--green)";
   return `<br><b style="color:${col}">📅 ${d<0?"Learn-by date passed":d===0?"Learn by today!":d+" day"+(d>1?"s":"")+" left"}</b>`};
 const libraryList=()=>[...sets].sort((a,b)=>{const k=x=>{const d=daysLeft(x);return d==null||d<0?1e9:d};return k(a)-k(b)});
@@ -738,7 +738,7 @@ function cards(p){
     return;
   }
   let queue=[],total=0,flip=false,hfOn=false;
-  const begin=every=>{queue=all.map((_,i)=>i).filter(i=>every||isDue(all[i]));total=queue.length};
+  const begin=every=>{queue=all.map((_,i)=>i).filter(i=>every||dueNow(all[i]));total=queue.length};
   const csv=()=>{
     const t=all.map(c=>[c.front,c.back].map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=(cur.title||"flashcards").replace(/[^\w-]+/g,"_")+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
@@ -756,12 +756,12 @@ function cards(p){
   const swipe=cls=>{const el=$("#fc");if(el&&animOK()){$("#yes").disabled=true;$("#no").disabled=true;el.classList.add(cls);setTimeout(draw,230)}else draw()};
   const draw=()=>{
     if(!queue.length){
-      const next=all.map(c=>c.due).filter(d=>d>Date.now()).sort((a,b)=>a-b)[0];
+      const next=!live(cur)?null:all.map(c=>c.due).filter(d=>d>Date.now()).sort((a,b)=>a-b)[0];
       p.innerHTML=`<div class="card hero"><h2>🎉 All caught up!</h2><p>${total?`You reviewed ${total} card${total>1?"s":""}.`:"No cards are due right now."}</p>${next?`<p class="mute">Next review: ${esc(new Date(next).toLocaleString())}</p>`:""}${tipHtml("space")}<button id="all">Study all cards anyway</button> <button class="alt" id="csv">⬇️ Export CSV</button></div>`;
       $("#all").onclick=()=>{begin(true);flip=false;draw()};$("#csv").onclick=csv;return;
     }
     const c=all[queue[0]];
-    p.innerHTML=`<p class="mute">${queue.length} left · ${all.filter(isDue).length} due · mastered ${all.filter(x=>x.box>=3).length} of ${all.length}</p><div class="bar"><i style="width:${total?100*(total-queue.length)/total:0}%"></i></div>
+    p.innerHTML=`<p class="mute">${queue.length} left · ${all.filter(dueNow).length} due · mastered ${all.filter(x=>x.box>=3).length} of ${all.length}</p><div class="bar"><i style="width:${total?100*(total-queue.length)/total:0}%"></i></div>
     <div class="card fc ${flip?"back":""}" id="fc" role="button" tabindex="0" aria-label="Flashcard. Press Enter to flip.">${esc(flip?c.back:c.front)}</div><p class="mute" style="margin:6px 0">Tap the card to flip</p>
     <button class="alt" id="no">Still learning</button> <button id="yes" data-nosfx>Got it</button>
     <div class="tools">${TTS?`<button class="alt ib2" id="rd" title="Read this side aloud" aria-label="Read this side aloud">🔊</button><button class="alt ib2" id="hf" title="${hfOn?"Stop hands-free":"Hands-free mode"}" aria-label="${hfOn?"Stop hands-free":"Hands-free mode"}">${hfOn?"⏹":"🎧"}</button>`:""}${user?'<button class="alt ib2" id="xpl" title="Explain differently" aria-label="Explain differently">💡</button>':""}<button class="alt ib2" id="csv" title="Export flashcards as CSV" aria-label="Export flashcards as CSV">⬇️</button></div>`;
@@ -880,7 +880,7 @@ function quiz(p){
   else start();
 }
 function progress(p){
-  const cs=cur.cards||[],mastered=cs.filter(c=>c.box>=3).length,due=cs.filter(isDue).length,mp=cs.length?Math.round(100*mastered/cs.length):0;
+  const cs=cur.cards||[],mastered=cs.filter(c=>c.box>=3).length,due=cs.filter(dueNow).length,mp=cs.length?Math.round(100*mastered/cs.length):0;
   const sc=cur.meta?.scores||[],last=sc.length?sc[sc.length-1].pct:null,best=sc.length?Math.max(...sc.map(x=>x.pct)):null;
   const L=cur.meta?.learnBy,d=daysLeft(cur),today=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const ready=Math.round(last==null?mp:(mp+last)/2);
