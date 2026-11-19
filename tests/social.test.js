@@ -33,5 +33,10 @@ check("challenge invites are limited to your own friends", /isFriend\(request\.a
 check("challenge scores can only be written under your own id, in your own challenge", /affectedKeys\(\)\.hasOnly\(\['scores'\]\)/.test(rules) && /hasOnly\(\[request\.auth\.uid\]\)/.test(rules));
 check("blocked people cannot send requests", /friendReq[\s\S]*?!exists\(\/databases\/\$\(database\)\/documents\/blocks/.test(rules));
 check("feedback can be written but not read by students", /match \/feedback\/\{id\}/.test(rules) && /allow read, update, delete: if false/.test(rules));
+section("Avatars");
+const avKeys = [...html.matchAll(/(?:^|[{,])\s*(fox|panda|tiger|uni|octo|owl|frog|peng|lion|turtle|rocket|star|bot|friend):\["#/g)].map(m => m[1]);
+check("all 14 drawn avatars are defined", new Set(avKeys).size === 14, avKeys.length);
+check("every avatar key fits the profile rule (8 characters with the a: prefix)", avKeys.every(k => ("a:" + k).length <= 8) && /emoji\.size\(\) <= 8/.test(rules));
+check("the avatar picker no longer uses the emoji list", !/EMOJIS/.test(html));
 if (fs.existsSync(root("worker.js"))) { let w = true; try { new Function(read("worker.js").replace("export default", "const W=")); } catch (e) { w = false; } check("worker.js has no syntax errors", w); }
 done();
